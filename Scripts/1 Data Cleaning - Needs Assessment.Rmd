@@ -8,19 +8,20 @@ output: pdf_document
 # Load Packages and Read data
 
 ```{r setup, include=FALSE}
-# Install the needed packages if not installed yet
-if(!requireNamespace("dplyr")) install.packages("dplyr", repos = "https://cloud.r-project.org")
-if(!requireNamespace("tidytext")) install.packages("tidytext", repos = "https://cloud.r-project.org")
-if(!requireNamespace("here")) install.packages("here", repos = "https://cloud.r-project.org")
-if(!requireNamespace("ggplot2")) install.packages("ggplot2", repos = "https://cloud.r-project.org")
-if(!requireNamespace("stringr")) install.packages("stringr", repos = "https://cloud.r-project.org")
+## Packages needed
+packages <- c("tidyverse", "here", "ggplot2", "knitr", "kableExtra", "tidytext", "ggpubr", "stringr")
 
-# Load the packages
-require(dplyr)
-require(tidytext)
-require(here)
-require(ggplot2)
-require(stringr)
+## Write a function to install the packages if they haven't been installed,
+## and to load the packages
+install <- function(pack) {
+  if(!requireNamespace(pack)) {
+    install.packages(pack, repos = "https://cloud.r-project.org")
+  }
+}
+
+## Run the funciton to install and load needed packages 
+sapply(packages, install)
+sapply(packages, require, character.only = T)
 ```
 
 
@@ -28,7 +29,7 @@ require(stringr)
 # here() is for reading or saving the data without specify the local directory
 here::here()
 
-needs_full <- read.csv("../Data/DS3 Needs Assessment_April 16.csv")
+needs_full <- read.csv("../Data/Needs Assessment_Deocy.csv")
 ```
 
 # Preprocess variable names
@@ -330,42 +331,3 @@ other <- needs %>%
 write.csv(other, file = "../Data/Other Questions.csv", row.names = F)
 save(other, file = "../Data/Other Questions.RDATA")
 ```
-
-
-
-
-
-# Analyis (just some thoughts...)
-
-
-```{r}
-#table(stat$stat_need)
-
-#research_design <- stat %>%
-  #filter(stat_need == "research design")
-#apply(research_design[, -1], 2, table)
-
-#tapply(stat$need_freq, stat$stat_need, table)
-
-
-# needs freqency
-need_freq_cnt <- stat %>%
-  group_by(stat_need, need_freq) %>%
-  summarise(cnt = n())
-
-ggplot(need_freq_cnt, aes(x = stat_need, y = cnt, fill = need_freq)) +
-  geom_bar(stat="identity") +
-  xlab("Statistical Methodology") +
-  ylab("Number of Respondens") +
-  theme(axis.text.x = element_text(angle = 60, hjust = 1))
-
-
-```
-
-
-
-```{r}
-table(soft$soft_need)
-```
-
-
