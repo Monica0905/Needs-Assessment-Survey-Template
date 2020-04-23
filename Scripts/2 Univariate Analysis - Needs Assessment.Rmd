@@ -1,0 +1,1021 @@
+---
+title: "Needs Assessment Analysis"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+## Packages needed
+packages <- c("tidyverse", "here", "ggplot2", "knitr", "kableExtra", "tidytext", "ggpubr")
+
+## Write a function to install the packages if they haven't been installed,
+## and to load the packages
+install <- function(pack) {
+  if(!requireNamespace(pack)) {
+    install.packages(pack, repos = "https://cloud.r-project.org")
+  }
+}
+
+## Run the funciton to install and load needed packages 
+sapply(packages, install)
+sapply(packages, require, character.only = T)
+
+
+# Read data
+
+here::here()
+
+## Statisitcal methodology checkbox and subquestions
+#stat <- read_csv("../Data/Statistical Methodology Needs.csv")
+load("../Data/Statistical Methodology Needs.RDATA")
+
+## Software engineering checkbox and subquestions
+#soft <- read_csv("../Data/Software Engineering Needs.csv")
+load("../Data/Software Engineering Needs.RDATA")
+
+## Other questions
+load("../Data/Other Questions.RDATA")
+```
+
+
+
+```{r function, include=FALSE}
+# Function creating the frequency table
+
+freq_table <- function(tab, var_name, 
+                       transform = FALSE, ordered = FALSE,
+                       caption = NULL, width_col1 = NULL, width_col2 = NULL) {
+  
+  # tab is a data frame with frequency, 
+  # or a vector that needs to be transformed into frequency table
+  
+  if (transform) {
+    tab <- as.data.frame(table(tab))
+  }
+  
+  if (ordered) {
+    tab <- tab[order(tab[, 2], decreasing = T), ]
+  }
+  
+  tab %>%
+    kable(booktabs = T,
+          caption = caption, col.names = c(var_name, "N"), row.names = F) %>%
+    kable_styling(latex_options = "striped") %>%
+    kable_styling(latex_options = "HOLD_position") %>%
+    column_spec(column = 1, width = width_col1) %>%
+    column_spec(column = 2, width = width_col2) %>%
+    row_spec(0, bold = T)
+    
+}
+
+
+
+# Function capitalizing the first letter in the phrase
+capital <- function(x, word1_only = F) {
+  
+  if (word1_only) {
+    s <- x
+    X <- NA
+    for (i in 1:length(s)) {
+      X[i] <- paste0(toupper(substring(s[[i]], 1,1)), substring(s[[i]], 2))
+    } 
+  } else {
+    s <- strsplit(x, " ")
+    X <- NA
+    for (i in 1:length(s)) {
+      X[i] <- paste(toupper(substring(s[[i]], 1,1)), substring(s[[i]], 2),
+        sep="", collapse=" ")
+    }
+  }
+  
+  
+  return(X)
+}
+```
+
+
+
+```{r number of participants, include=FALSE}
+n_participant <- nrow(other)
+```
+
+
+The tables and barplots in this report are generated from the survey data of `r n_participant` participants.
+
+# FTE
+
+## FTE of Statistical Methodology
+
+The following tables and barplots show the FTE needed and supported for statistical services, and are based on the two questions below:
+
+**Q3: Generally, what level of effort (in FTE or full time equivalent) would be needed to satisfy your research needs (across all of your projects) for the types of statistical methodology services described above?**
+
+**Q4: Generally, what level of effort (in FTE or full time equivalent) could you reasonably expect to support (across all of your projects) the statistical methodology services described above from your grants?**
+
+
+```{r, echo=F}
+# FTE needed
+stat_FTE_needs <- other %>%
+  filter(!is.na(stat_FTE_need)) %>%
+  mutate(stat_FTE_need = factor(stat_FTE_need)) %>%
+  group_by(stat_FTE_need) %>%
+  summarise(N = n()) %>%
+  ## weighted sum
+  mutate(ws = sum(as.numeric(as.character(stat_FTE_need)) * N))
+
+freq_table(stat_FTE_needs[, 1:2], "FTE", caption = "FTE Needed for Statistical Methodology") %>%
+  footnote(general = paste(stat_FTE_needs$ws[1], " FTE needed"),
+  general_title = "Total: ", 
+  footnote_as_chunk = T, title_format = c("italic", "underline"))
+
+
+
+# FTE supported
+stat_FTE_supports <- other %>%
+  filter(!is.na(stat_FTE_support)) %>%
+  mutate(stat_FTE_support = factor(stat_FTE_support)) %>%
+  group_by(stat_FTE_support) %>%
+  summarise(N = n()) %>%
+  ## weighted sum
+  mutate(ws = sum(as.numeric(as.character(stat_FTE_support)) * N))
+
+freq_table(stat_FTE_supports[, 1:2], "FTE", caption = "FTE Supported for Statistical Methodology") %>%
+  footnote(general = paste(stat_FTE_supports$ws[1], " FTE supported"),
+  general_title = "Total: ", 
+  footnote_as_chunk = T, title_format = c("italic", "underline"))
+
+
+# Barplots
+p1 <- ggplot(other[!is.na(other$stat_FTE_need), ], aes(x = factor(stat_FTE_need))) +
+  geom_bar() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle("FTE Needed for \n Statistical Methodology") +
+  xlab("FTE") + ylab("N")
+
+p2 <- ggplot(other[!is.na(other$stat_FTE_support), ], aes(x = factor(stat_FTE_support))) +
+  geom_bar() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle("FTE Expected to support \n Statistical Methodology") +
+  xlab("FTE") + ylab("N")
+
+ggarrange(p1, p2)
+```
+
+
+The following table shows the total of FTE needed and supported, their difference, and how much of the FTE needed has been supported.
+
+```{r, echo=F}
+data.frame(FTE_Needed = stat_FTE_needs$ws[1], FTE_Supported = stat_FTE_supports$ws[1],
+           Needs_Supports_Gap = stat_FTE_needs$ws[1] - stat_FTE_supports$ws[1],
+           Pct_Needs_Supported = paste0(round(stat_FTE_supports$ws[1] / stat_FTE_needs$ws[1] * 100, 1), "%")) %>%
+  kable(booktabs = T,
+        caption = "Gap Between Statistical FTE Needed and FTE Supported", col.names = c("FTE Needed", "FTE Supported", "Needs & Supports Gap", "% of Needs Supported"), row.names = F) %>%
+    kable_styling(latex_options = "striped") %>%
+    kable_styling(latex_options = "HOLD_position") %>%
+    row_spec(0, bold = T)
+```
+
+
+The following table and barplot show the difference between the FTE needed and the FTE expected to support (**Q3-Q4**). 
+
+```{r, echo=F}
+# Difference between FTE needed and FTE supported (Q3 - Q4)
+stat_FTE_diff <- other$stat_FTE_need - other$stat_FTE_support
+
+# Frequency table and barplot of the difference
+freq_table(stat_FTE_diff, "FTE Needed - FTE Supported", transform = T,
+           caption = "Difference between FTE needed and FTE expected to support (Statistical Methodology)") %>%
+  footnote(general = paste(sum(stat_FTE_diff, na.rm = T), " FTE needed but not supported"),
+  general_title = "Total: ", 
+  footnote_as_chunk = T, title_format = c("italic", "underline"))
+
+ggplot(data.frame(dif = stat_FTE_diff[!is.na(stat_FTE_diff)]), aes(x = factor(dif))) +
+  geom_bar() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle("Difference between FTE Needed and FTE Expected to Support \n (Statistical Methodology)") +
+  xlab("FTE difference") + ylab("N")
+
+# Mean, SD, and sum of the difference
+diff.summ <- data.frame(Mean = mean(stat_FTE_diff, na.rm = T),
+                        SD = sd(stat_FTE_diff, na.rm = T),
+                        Sum = sum(stat_FTE_diff, na.rm = T))
+diff.summ %>%
+  kable(booktabs = T, digits = 3,
+        caption = "Summary Table of the FTE Difference (Statistical Methodology)", row.names = F) %>%
+  row_spec(0, bold = T) 
+```
+
+
+
+## FTE of Software Engineering
+
+The following tables and barplots show the FTE needed and supported for software engineering services, and are based on the two questions below:
+
+**Q10: Generally, what level of effort (in FTE or full time equivalent) would be needed to satisfy your research needs (across all of your projects) for the types of software engineering services described above?**
+
+**Q11: Generally, what level of effort (in FTE or full time equivalent) could you reasonably expect to support (across all of your projects) the software engineering services described above from your grants?**
+
+
+```{r, echo=F}
+# FTE needed
+soft_FTE_needs <- other %>%
+  filter(!is.na(soft_FTE_need)) %>%
+  mutate(soft_FTE_need = factor(soft_FTE_need)) %>%
+  group_by(soft_FTE_need) %>%
+  summarise(N = n()) %>%
+  ## weighted sum
+  mutate(ws = sum(as.numeric(as.character(soft_FTE_need)) * N))
+
+freq_table(soft_FTE_needs[, 1:2], "FTE", caption = "FTE Needed for Software Engineering") %>%
+  footnote(general = paste(soft_FTE_needs$ws[1], " FTE needed"),
+  general_title = "Total: ", 
+  footnote_as_chunk = T, title_format = c("italic", "underline"))
+
+
+
+# FTE supported
+soft_FTE_supports <- other %>%
+  filter(!is.na(soft_FTE_support)) %>%
+  mutate(soft_FTE_support = factor(soft_FTE_support)) %>%
+  group_by(soft_FTE_support) %>%
+  summarise(N = n()) %>%
+  ## weighted sum
+  mutate(ws = sum(as.numeric(as.character(soft_FTE_support)) * N))
+
+freq_table(soft_FTE_supports[, 1:2], "FTE", caption = "FTE Supported for Software Engineering") %>%
+  footnote(general = paste(soft_FTE_supports$ws[1], " FTE supported"),
+  general_title = "Total: ", 
+  footnote_as_chunk = T, title_format = c("italic", "underline"))
+
+
+# Barplots
+
+p1 <- ggplot(other[!is.na(other$soft_FTE_need), ], aes(x = factor(soft_FTE_need))) +
+  geom_bar() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle("FTE Needed for \n Software Engineering") +
+  xlab("FTE") + ylab("N")
+
+p2 <- ggplot(other[!is.na(other$soft_FTE_support), ], aes(x = factor(soft_FTE_support))) +
+  geom_bar() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle("FTE Expected to support \n Software Engineering") +
+  xlab("FTE") + ylab("N")
+
+ggarrange(p1, p2)
+```
+
+
+The following table shows the weighted total of FTE needed and supported, their difference, and how much of the FTE needed has been supported.
+
+```{r, echo=F}
+data.frame(FTE_Needed = soft_FTE_needs$ws[1], FTE_Supported = soft_FTE_supports$ws[1],
+           Needs_Supports_Gap = soft_FTE_needs$ws[1] - soft_FTE_supports$ws[1],
+           Pct_Needs_Supported = paste0(round(soft_FTE_supports$ws[1] / soft_FTE_needs$ws[1] * 100, 1), "%")) %>%
+  kable(booktabs = T,
+        caption = "Gap Between Software FTE Needed and FTE Supported", col.names = c("FTE Needed", "FTE Supported", "Needs & Supports Gap", "% of Needs Supported"), row.names = F) %>%
+    kable_styling(latex_options = "striped") %>%
+    kable_styling(latex_options = "HOLD_position") %>%
+    row_spec(0, bold = T)
+```
+
+
+
+The following table and barplot show the difference between the FTE needed and the FTE expected to support (**Q3-Q4**). 
+
+```{r, echo=F}
+# Difference between FTE needed and FTE supported (Q3 - Q4)
+soft_FTE_diff <- other$soft_FTE_need - other$soft_FTE_support
+
+# Frequency table and barplot of the difference
+freq_table(soft_FTE_diff, "FTE Needed - FTE Supported", transform = T,
+           caption = "Difference between FTE needed and FTE expected to support (Software Engineering)")%>%
+  footnote(general = paste(sum(soft_FTE_diff, na.rm = T), " FTE needed but not supported"),
+  general_title = "Total: ", 
+  footnote_as_chunk = T, title_format = c("italic", "underline"))
+
+ggplot(data.frame(dif = soft_FTE_diff[!is.na(soft_FTE_diff)]), aes(x = factor(dif))) +
+  geom_bar() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  ggtitle("Difference between FTE Needed and FTE Expected to Support \n (Software Engineering)") +
+  xlab("FTE difference") + ylab("N")
+
+# Mean, SD, and sum of the difference
+diff.summ <- data.frame(Mean = mean(soft_FTE_diff, na.rm = T),
+                        SD = sd(soft_FTE_diff, na.rm = T),
+                        Sum = sum(soft_FTE_diff, na.rm = T))
+diff.summ %>%
+  kable(booktabs = T, digits = 3,
+        caption = "Summary Table of the FTE Difference (Software Engineering)", row.names = F) %>%
+  row_spec(0, bold = T) 
+```
+
+
+# Demographics
+
+## School
+
+**Q1: Which NYU schools, centers, or institutes are you affiliated with?**
+
+```{r, echo=FALSE}
+# School
+
+schools <- other %>%
+  
+  # Select relevant variables and drop rows with missing school
+  select(id, school, school_selfenter) %>%
+  filter(!is.na(school)) %>%
+  
+  # Unnest the schools  
+  unnest_tokens(output = school, input = school, token = 'regex', pattern=",", to_lower = FALSE) %>%
+  
+  # Add a column of the grouped "other" categories,
+  # and replace the "other" in the school variable with the grouped other categories
+  mutate(school_selfenter_g = case_when(school_selfenter=="Gallatin School of Individualized Study" ~ "Gallatin",
+                                        school_selfenter=="NYU Student Health Center" ~ "Student Health Center",
+                                        TRUE ~ school_selfenter),
+         
+         school = ifelse(school=="other", school_selfenter_g, school)) %>%
+
+  # Compute the number of participants of each school
+  group_by(school) %>%
+  summarise(n = n()) %>%
+  ungroup() %>%
+  
+  # Arrange by the number of participants
+  arrange(-n) 
+  
+
+# Table and Barplot
+freq_table(schools[, c("school", "n")], "School", caption = "Number of Participants in Different Schools")
+
+ggplot(schools, aes(x = reorder(school, -n), y = n)) +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1),
+        plot.title = element_text(hjust = 0.5)) +
+  ggtitle("Number of Participants in Different Schools") +
+  xlab("School") + ylab("N") 
+```
+
+
+
+## Rank 
+
+**Q2: What is your current rank?**
+
+```{r, echo=FALSE}
+# Rank 
+
+ranks <- other %>%
+  
+  # Select relevant variables and drop rows with missing school
+  select(id, rank, rank_selfenter) %>%
+  filter(!is.na(rank)) %>%
+  
+  # Unnest the schools  
+  unnest_tokens(output = rank, input = rank, token = 'regex', pattern=",", to_lower = FALSE) %>%
+  
+  # Add a column of the grouped "other" categories,
+  # and replace the "other" in the rank variable with the grouped other categories
+  mutate(rank_selfenter_g = case_when(tolower(rank_selfenter) %in% c("research scholar", "ft research staff", "research fellow", "research staff") ~ "Research Staff / Fellow",
+                                      tolower(rank_selfenter) %in% c("administrator", "assistant director / administrator") ~ "Administrator",
+                                      tolower(rank_selfenter) %in% c("center director, nonfaculty", "director", "executive director", "executive director of a center") ~ "Director",
+                                      tolower(rank_selfenter) %in% c("clinical assistant prof", "clinical associate professor") ~ "Clinical Professor",
+                                      tolower(rank_selfenter) == "industry assistant professor" ~ "Industry Assistant Professor",
+                                      grepl("student", tolower(rank_selfenter)) ~ "Student",
+                                      TRUE ~ rank_selfenter),
+         
+         rank = ifelse(rank=="other", rank_selfenter_g, rank)) %>%
+
+  # Compute the number of participants of each school
+  group_by(rank) %>%
+  summarise(n = n()) %>%
+  ungroup() %>%
+  
+  # Arrange by the number of participants
+  arrange(-n)
+  
+
+# Table and Barplot
+freq_table(ranks[, c("rank", "n")], "Rank", caption = "Number of Participants of Different Ranks")
+
+ggplot(ranks, aes(x = reorder(rank, -n), y = n)) +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1),
+        plot.title = element_text(hjust = 0.5)) +
+  ggtitle("Number of Participants of Different Ranks") +
+  xlab("Rank") + ylab("N")
+```
+
+
+
+# Statistical Methodology 
+
+## Statistical Methodology checkbox
+
+**Q Checkbox: Which of the following Statistical Methodology do you currently use in your work, need help with, or expect that you may need help with in the future?**
+
+```{r, echo=FALSE}
+# Gruop the "Other" categories 
+# and replace the "Other" in the stat_need variable with the grouped other categories
+stat <- stat %>%
+  mutate(stat_need_selfenter_g = case_when(stat_need_selfenter %in% c("Does not relate", "N/A", "None", "none of the above") ~ "",
+                                           stat_need_selfenter %in% c("Big data infrastructure", "Help with support for our big data cluster, Dumbo. It needs upgrading, it is missing a big data visualization tool, such as Tableau.") ~ "Big Data",
+                                           stat_need_selfenter %in% c("large scale simulations", "Simulation") ~ "Simulation",
+                                           stat_need_selfenter %in% c("Optimizing code to be run on distributed high performance computing systems", "Use of HPC") ~ "HPC",
+                                           stat_need_selfenter %in% c("All used in work", "Everything--statistical epidemiology") ~ "Everything",
+                                           stat_need_selfenter == "Determining the best statistical method to analyse a particular data set" ~ "Model Selection and Specification",
+                                           stat_need_selfenter == "survey design, crowd sourced experiments" ~ "Research Design",
+                                           grepl("specific software", stat_need_selfenter) ~ "Coding/Software Help",
+                                           grepl("Developing packages for CRAN", stat_need_selfenter) ~ "",
+                                           
+                                           TRUE ~ stat_need_selfenter)) %>%
+         
+         mutate(stat_need = ifelse(stat_need=="Other", stat_need_selfenter_g, stat_need)) 
+
+
+stat_needs <- stat %>%
+  
+  # Select relevant variables and drop rows with missing stat_need
+  select(id, stat_need) %>%
+  filter(stat_need != "") %>%
+
+  # Compute the number of participants of each statistical methodology
+  group_by(stat_need) %>%
+  summarise(n = n()) %>%
+  ungroup() %>%
+  
+  # Arrange by the number of participants
+  arrange(-n) %>%
+  
+  mutate(stat_need = capital(stat_need))
+
+
+# Table and barplot
+freq_table(stat_needs[, c("stat_need", "n")], "Statistical Methodology", caption = "Statistical Methodology in Need")
+
+
+ggplot(stat_needs, aes(x = reorder(stat_need, -n), y = n)) +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1),
+        plot.title = element_text(hjust = 0.5)) +
+  ggtitle("Statistical Methodology in Need") +
+  xlab("Statistical Methodology") + ylab("N")
+```
+
+## Subquestions for each of the statistical methodology
+
+The following tables are showing the following four questions asking about each of the statistical methodology selected by the participant:
+
+**(1) How often do you currently need to perform these tasks in your research?**
+
+**(2) To what extent do you think access to people who could help you with these tasks would help your research?**
+
+**(3) How hard is it for you to currently support someone to help you with these tasks through your grants?**
+
+**(4) How hard is it for you to currently find people to help you with these tasks?**
+
+
+```{r, echo=FALSE, results='asis'}
+m <- unique(stat_needs$stat_need)
+
+for (i in 1:length(m)) {
+  
+  stat_method <- stat[tolower(stat$stat_need) == tolower(m[i]), ]
+  
+  print(kable(paste0(m[i], ":"), "latex", col.names = NULL, booktabs = T) %>% row_spec(1, bold = T) %>% kable_styling(position = "center"))
+  
+  print(freq_table(stat_method$need_freq, "(1) Frequency in need", transform = T))
+  print(freq_table(stat_method$help_extent, "(2) Helpfulness", transform = T))
+  print(freq_table(stat_method$support_difficulty, "(3) Difficulty to support", transform = T))
+  print(freq_table(stat_method$find_difficulty, "(4) Difficulty to find", transform = T))
+
+  
+  # If there are more than 5 respondents for the statistical methodology,
+  # then also plot the bar plots
+  
+  if (stat_needs$n[i] >= 5) {
+    
+    p1 <- ggplot(stat_method, aes(x = need_freq)) +
+      geom_bar() + ggtitle("(1) Frequency in need") +
+      theme(axis.text.x = element_text(size = 7), axis.title.x=element_blank()) +
+      scale_x_discrete(drop=FALSE)
+  
+    p2 <- ggplot(stat_method, aes(x = help_extent)) +
+      geom_bar() + ggtitle("(2) Helpfulness") +
+      theme(axis.text.x = element_text(size = 7), axis.title.x=element_blank()) +
+      scale_x_discrete(labels = c("Critical to research" = "Critical",
+                                  "Greatly help" = "Greatly",
+                                  "Moderately help" = "Moderately",
+                                  "Slightly help" = "Slightly",
+                                  "Not at all" = "None"),
+                       drop=FALSE)
+  
+    p3 <- ggplot(stat_method, aes(x = support_difficulty)) +
+      geom_bar() + ggtitle("(3) Difficulty to support") +
+      theme(axis.title.x=element_blank()) +
+      scale_x_discrete(drop=FALSE)
+  
+    p4 <- ggplot(stat_method, aes(x = find_difficulty)) +
+      geom_bar() + ggtitle("(4) Difficulty to find") +
+      theme(axis.title.x=element_blank()) +
+      scale_x_discrete(drop=FALSE)
+  
+    print(ggarrange(p1, p2, p3, p4, ncol = 2, nrow = 2))
+  }
+  
+}
+```
+
+
+## Opinion about supporting needs through grants
+
+**Q5: Which best describes your opinion about supporting your statistical methodology needs through grants?**
+
+```{r, echo=F}
+freq_table(other$stat_opinion_support, "Opinion", 
+           transform = T, width_col1 = "15cm",
+           caption = "Opinion about supporting statistical methodology needs through grants")
+
+ggplot(other[!is.na(other$stat_opinion_support), ], aes(x = stat_opinion_support)) +
+  geom_bar() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_discrete(labels = c("Not need", 
+                              "Possible to hire \n through grants \n on my own", 
+                              "Able to support, \n but difficult to hire \n skilled people", 
+                              "Can only partially \n support",
+                              "Unlikely to support"),
+                   drop = FALSE) +
+  ggtitle("Opinion about Supporting \n Statistical Methodology Needs through Grants") +
+  xlab("Opinion") + ylab("N")
+```
+
+
+## Opinions about services from a university pool
+
+**Q6: Imagine there was a university-selected pool of people available to contract. Which best describes your opinion about contracting these services from a university pool?**
+
+```{r, echo=F}
+freq_table(other$stat_univers_pool, "Opinion", 
+           transform = T, width_col1 = "15cm",
+           caption = "Opinion about contracting statistical methodology services from a university pool")
+
+ggplot(other[!is.na(other$stat_univers_pool), ], aes(x = stat_univers_pool)) +
+  geom_bar(position = position_dodge(preserve = "single")) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_discrete(labels = c("Not need", 
+                              "Skeptical", 
+                              "Would consider if \n someone is a good fit", 
+                              "Happy to contract"),
+                   drop = FALSE) +
+  ggtitle("Opinion about Contracting \n Statistical Methodology services from a University Pool") +
+  xlab("Opinion") + ylab("N")
+```
+
+
+## Access to statistical services
+
+**Q7: How do you access statistical services?**
+
+```{r, echo=F}
+stat_accesses <- other %>%
+  
+  select(id, stat_access, stat_access_other_specify) %>%
+  
+  # Unnest the accesses
+  unnest_tokens(output = stat_access, input = stat_access, token = 'regex', pattern=",", to_lower = FALSE) %>%
+  
+  # Group the "other" categories 
+  mutate(stat_access_other_specify_g = case_when(stat_access_other_specify %in% c("Do it myself", "do it on my own", "I'm a biostatistician", "I am a statistician", "I try to do them myself", "spend the effort myself") ~ "Do it myself",
+                                                 stat_access_other_specify %in% c("College of Nursing statisticians", "Consult within the school", "Internal Research Scientist", "or Consult with colleagues", "Reach out to the medical school's stats pool.", "See if anyone is available in my dept", "We have a core of biostatisticians at Meyers ", "hire a research associate", "Hired staff who is staffed on multiple projects providing this kind of support") ~ "Consult / hire within school",
+                                                 TRUE ~ stat_access_other_specify)) %>%
+  # Replace the category of other
+  mutate(stat_access = ifelse(stat_access=="Other (Please specify which:)", stat_access_other_specify_g, stat_access),
+         stat_access = ifelse(stat_access=="Seek consultation from outside the university (Please specify which:)", "Seek consultation from outside the university", stat_access)) %>%
+  
+  # Compute the number of participants of each access
+  group_by(stat_access) %>%
+  summarise(n = n()) %>%
+  ungroup() %>%
+  
+  # Arrange by the number of participants
+  filter(stat_access != "") %>%
+  arrange(-n) %>%
+  
+  # Capitalize the first letter
+  mutate(stat_access = capital(stat_access, word1_only = T))
+ 
+
+# Table and barplot 
+  
+freq_table(stat_accesses, "Access", caption = "How to Access Statistical Services")
+
+ggplot(stat_accesses, aes(x = reorder(stat_access, -n), y = n)) +
+  geom_bar(stat = "identity") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_discrete(labels = c("I don’t" = "Not access", 
+                              "Hire a student" = "Hire a \n student", 
+                              "Collaborate with a professor" = "Collaborate with \n a professor", 
+                              "Seek consultation from outside the university" = "Outside \n consultation",
+                              "Consult / hire within school" = "Consult / hire \n within school",
+                              "Do it myself" = "Do it \n myself",
+                              "Have  long time stat collaborator" = "Long time \n stat collaborator",
+                              "Hire an independent consultant" = "Indepedent \n consultant"),
+                   drop = FALSE) +
+  ggtitle("How Participants Access to Statistical Services") +
+  xlab("Access") + ylab("N")
+```
+
+The following table shows the consultation from outside the university specified by the participants.
+
+```{r, echo=F}
+freq_table(other$stat_access_consult_specify[other$stat_access_consult_specify!=""], "Consultation", transform = T,
+           caption = "Statistical Consultation from Outide the University",
+           width_col1 = "15cm")
+```
+
+
+## When to rely on the services
+
+**Q8: When do you expect or usually rely on the types of services listed above?**
+
+```{r, echo=F}
+freq_table(other$stat_need_when, "When", transform = T,
+           caption = "When to Rely on Statistical Services")
+
+ggplot(other[!is.na(other$stat_need_when), ], aes(x = stat_need_when)) +
+  geom_bar() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_discrete(labels = c("Before grant", 
+                              "After grant", 
+                              "Both before and \n after grant", 
+                              "Regardless whether \n applying a grant"),
+                   drop = FALSE) +
+  ggtitle("When Participants Rely on Statistical Services") +
+  xlab("When") + ylab("N")
+```
+
+
+## Reason for needing the services
+
+**Q9: In general, do you need help with the services listed above because:**
+
+```{r, echo=F}
+freq_table(other$stat_need_reason, "Reason", transform = T,
+           caption = "Why Need Statistical Services", width_col1 = "15cm")
+
+ggplot(other[!is.na(other$stat_need_reason), ], aes(x = stat_need_reason)) +
+  geom_bar() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_discrete(labels = c("Know how to do \n but do not have time to implement", 
+                              "Have not used \n but could push forward the research"),
+                   drop = FALSE) +
+  ggtitle("Why Participants Need Statistical Services") +
+  xlab("Reason") + ylab("N")
+```
+
+
+
+
+
+
+# Software Engineering
+
+## Software Engineering checkbox
+
+**Q Checkbox: Which of the following Software Engineering do you currently use in your work, need help with, or expect that you may need help with in the future?**
+
+```{r, echo=FALSE}
+# Add the "Developing packages for CRAN" in the self-entered "Other" text 
+# of Statistical Methodology part to the Software Engineering part
+dev_pack <- stat %>%
+  filter(stat_need_selfenter == "Developing packages for CRAN",
+         stat_need == "") %>%
+  rename(soft_need = stat_need, soft_need_selfenter = stat_need_selfenter) %>%
+  select(-stat_need_selfenter_g)
+
+soft <- rbind(soft, dev_pack) 
+
+# Gruop the "Other" categories 
+# and replace the "Other" in the soft_need variable with the grouped other categories
+soft <- soft %>%
+  mutate(soft_need_selfenter_g = case_when(soft_need_selfenter %in% c("N/A", "none", "None") ~ "",
+                                           grepl("scraping", tolower(soft_need_selfenter)) ~ "Scraping",
+                                           soft_need_selfenter == "Developing packages for CRAN" ~ "Python or R package building",
+                                           soft_need_selfenter == "software engineering for numerical optimization" ~ "Numerical Optimization",
+                                           soft_need_selfenter == "Spark and Hadoop tools programming." ~ "Spark & Hadoop",
+                                           TRUE ~ soft_need_selfenter)) %>%
+  
+  mutate(soft_need = ifelse(soft_need %in% c("Other", ""), soft_need_selfenter_g, soft_need))
+
+
+# Prepare the frequency data frame
+soft_needs <- soft %>%
+  
+  # Select relevant variables and drop rows with missing soft_need
+  select(id, soft_need) %>%
+  filter(soft_need != "") %>%
+
+  # Compute the number of participants of each school
+  group_by(soft_need) %>%
+  summarise(n = n()) %>%
+  ungroup() %>%
+  
+  # Arrange by the number of participants
+  arrange(-n) %>%
+  
+  mutate(soft_need = capital(soft_need))
+
+
+# Table and barplot
+
+freq_table(soft_needs[, c("soft_need", "n")], "Software Engineering", caption = "Software Engineering in Need")
+
+ggplot(soft_needs, aes(x = reorder(soft_need, -n), y = n)) +
+  geom_bar(stat = "identity") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1),
+        plot.title = element_text(hjust = 0.5)) +
+  ggtitle("Software Engineering in Need") +
+  xlab("Software Engineering") + ylab("N")
+```
+
+## Subquestions for each of the software engineering checkbox
+
+The following tables are showing the following four questions asking about each of the software engineering selected by the participant:
+
+**(1) How often do you currently need to perform these tasks in your research?**
+
+**(2) To what extent do you think access to people who could help you with these tasks would help your research?**
+
+**(3) How hard is it for you to currently support someone to help you with these tasks through your grants?**
+
+**(4) How hard is it for you to currently find people to help you with these tasks?**
+
+
+```{r, echo=FALSE, results='asis'}
+m <- unique(soft_needs$soft_need)
+
+for (i in 1:length(m)) {
+  
+  soft_method <- soft[tolower(soft$soft_need) == tolower(m[i]), ]
+  
+  print(kable(paste0(m[i], ":"), "latex", col.names = NULL, booktabs = T) %>% row_spec(1, bold = T) %>% kable_styling(position = "center"))
+  
+  print(freq_table(soft_method$need_freq, "(1) Frequency in need", transform = T))
+  print(freq_table(soft_method$help_extent, "(2) Helpfulness", transform = T))
+  print(freq_table(soft_method$support_difficulty, "(3) Difficulty to support", transform = T))
+  print(freq_table(soft_method$find_difficulty, "(4) Difficulty to find", transform = T))
+
+  
+  # If there are more than 5 respondents for the software engineering checkbox,
+  # then also plot the bar plots
+  
+  if (soft_needs$n[i] >= 5) {
+    
+    p1 <- ggplot(soft_method, aes(x = need_freq)) +
+      geom_bar() + ggtitle("(1) Frequency in need") +
+      theme(axis.text.x = element_text(size = 7), axis.title.x=element_blank()) +
+      scale_x_discrete(drop=FALSE)
+  
+    p2 <- ggplot(soft_method, aes(x = help_extent)) +
+      geom_bar() + ggtitle("(2) Helpfulness") +
+      theme(axis.text.x = element_text(size = 7), axis.title.x=element_blank()) +
+      scale_x_discrete(labels = c("Critical to research" = "Critical",
+                                  "Greatly help" = "Greatly",
+                                  "Moderately help" = "Moderately",
+                                  "Slightly help" = "Slightly",
+                                  "Not at all" = "None"),
+                       drop=FALSE)
+  
+    p3 <- ggplot(soft_method, aes(x = support_difficulty)) +
+      geom_bar() + ggtitle("(3) Difficulty to support") +
+      theme(axis.title.x=element_blank()) +
+      scale_x_discrete(drop=FALSE)
+  
+    p4 <- ggplot(soft_method, aes(x = find_difficulty)) +
+      geom_bar() + ggtitle("(4) Difficulty to find") +
+      theme(axis.title.x=element_blank()) +
+      scale_x_discrete(drop=FALSE)
+  
+    print(ggarrange(p1, p2, p3, p4, ncol = 2, nrow = 2))
+  }
+  
+}
+```
+
+
+## Opinion about supporting needs through grants
+
+**Q12: Which best describes your opinion about supporting your software engineering needs through grants?**
+
+```{r, echo=F}
+freq_table(other$soft_opinion_support, "Opinion", 
+           transform = T, width_col1 = "15cm",
+           caption = "Opinion about supporting software engineering needs through grants")
+
+ggplot(other[!is.na(other$soft_opinion_support), ], aes(x = soft_opinion_support)) +
+  geom_bar() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_discrete(labels = c("Not need", 
+                              "Possible to hire \n through grants \n on my own", 
+                              "Able to support, \n but difficult to hire \n skilled people", 
+                              "Can only partially \n support",
+                              "Unlikely to support"),
+                   drop = FALSE) +
+  ggtitle("Opinion about Supporting \n Software Engineering Needs through Grants") +
+  xlab("Opinion") + ylab("N")
+```
+
+
+## Opinions about services from a university pool
+
+**Q13: Imagine there was a university-selected pool of people available to contract. Which best describes your opinion about contracting these services from a university pool?**
+
+```{r, echo=F}
+freq_table(other$soft_univers_pool, "Opinion", 
+           transform = T, width_col1 = "15cm",
+           caption = "Opinion about contracting software engineering services from a university pool")
+
+ggplot(other[!is.na(other$soft_univers_pool), ], aes(x = soft_univers_pool)) +
+  geom_bar() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_discrete(labels = c("No need", 
+                              "Skeptical", 
+                              "Would consider if \n someone is a good fit", 
+                              "Happy to contract"),
+                   drop = F) +
+  ggtitle("Opinion about Contracting \n Software Engineering Services from a University Pool") +
+  xlab("Opinion") + ylab("N")
+```
+
+
+## Access to software services
+
+**Q14: How do you access software services?**
+
+```{r, echo=F}
+soft_accesses <- other %>%
+  
+  select(id, soft_access, soft_access_other_specify) %>%
+  
+  # Unnest the accesses
+  unnest_tokens(output = soft_access, input = soft_access, token = 'regex', pattern=",", to_lower = FALSE) %>%
+  
+  # Group the "other" categories 
+  mutate(soft_access_other_specify_g = case_when(grepl("myself", tolower(soft_access_other_specify)) | grepl("personally", tolower(soft_access_other_specify)) ~ "Do it myself",
+                                                 #soft_access_other_specify == "Personally and through students" ~ "Do it myself",
+                                                 soft_access_other_specify %in% c("Current research programmer, who will only be on staff for a year", "hire a software engineer", "Hire a staff member") ~ "Hire software staff",
+                                                 grepl("postdoc", tolower(soft_access_other_specify)) ~ "Postdocs",
+                                                 TRUE ~ soft_access_other_specify)) %>%
+  # Replace the category of other
+  mutate(soft_access = ifelse(soft_access=="Other (Please specify which:)", soft_access_other_specify_g, soft_access),
+         soft_access = ifelse(soft_access=="Seek consultation from outside the university (Please specify which:)", "Seek consultation from outside the university", soft_access)) %>%
+  
+  # Compute the number of participants of each access
+  group_by(soft_access) %>%
+  summarise(n = n()) %>%
+  ungroup() %>%
+  
+  # There is a respondent writing "Personally and through students".
+  # I grouped this into "Do it myself",
+  # so I added 1 more count into the "Hire a student" category
+  mutate(n = ifelse(soft_access == "Hire a student", n+1, n)) %>%
+  
+  # Arrange by the number of participants
+  filter(soft_access != "") %>%
+  arrange(-n) %>%
+  
+  # Capitalize the first letter
+  mutate(soft_access = capital(soft_access, word1_only = T))
+
+
+
+# Table and barplot 
+  
+freq_table(soft_accesses, "Access", caption = "How to Access softistical Services")
+
+ggplot(soft_accesses, aes(x = reorder(soft_access, -n), y = n)) +
+  geom_bar(stat = "identity") +
+  theme(plot.title = element_text(hjust = 0.5), 
+        axis.text.x = element_text(angle = 60, hjust = 1)) +
+  scale_x_discrete(labels = c("I don’t" = "Not access", 
+                              "Seek consultation from outside the university" = "Outside consultation",
+                              "Have a stat collaborator I brought with mr" = "Stat collaborator",
+                              "NYU Library Data Services Lab" = "Data Services")) +
+  ggtitle("How Participants Access to Software Engineering Services") +
+  xlab("Access") + ylab("N")
+```
+
+The following table shows the consultation from outside the university specified by the participants.
+
+```{r, echo=F}
+freq_table(other$soft_access_consult_specify[other$soft_access_consult_specify!=""], "Consultation", transform = T,
+           caption = "Software Consultation from Outide the University",
+           width_col1 = "15cm")
+```
+
+
+## When to rely on the services
+
+**Q15: When do you expect or usually rely on the types of services listed above?**
+
+```{r, echo=F}
+freq_table(other$soft_need_when, "When", transform = T,
+           caption = "When to Rely on Software Services")
+
+ggplot(other[!is.na(other$soft_need_when), ], aes(x = soft_need_when)) +
+  geom_bar() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_discrete(labels = c("Before grant", 
+                              "After grant", 
+                              "Both before and \n after grant", 
+                              "Regardless whether \n applying a grant")) +
+  ggtitle("When Participants Rely on Software Services") +
+  xlab("When") + ylab("N")
+```
+
+
+## Reason for needing the services
+
+**Q16: In general, do you need help with the services listed above because:**
+
+```{r, echo=F}
+freq_table(other$soft_need_reason, "Reason", transform = T,
+           caption = "Why Need Software Services", width_col1 = "15cm")
+
+ggplot(other[!is.na(other$soft_need_reason), ], aes(x = soft_need_reason)) +
+  geom_bar() +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_x_discrete(labels = c("Know how to do \n but do not have time to implement", 
+                              "Have not used \n but could push forward the research")) +
+  ggtitle("Why Participants Need Software Services") +
+  xlab("Reason") + ylab("N")
+```
+
+
+
+# Open-ended Questions
+
+## Public
+
+```{r, echo=F}
+oe_public <- other %>%
+  filter(willing_quote == "")
+```
+
+### Other Experience
+
+```{r, echo=F}
+oe_public %>%
+  filter(other_experience != "") %>%
+  select(other_experience) %>%
+  kable(caption = "Other Experience (For Public Use)", 
+        col.names = NULL, row.names = F, longtable = T) %>%
+  kable_styling(latex_options = c("HOLD_position", "repeat_header")) %>%
+  column_spec(column = 1, width = "15cm")
+```
+
+### Other Comments
+
+```{r, echo=F}
+oe_public %>%
+  filter(other_comment != "") %>%
+  select(other_comment) %>%
+  kable(caption = "Other Comments (For Public Use)", 
+        col.names = NULL, row.names = F, longtable = T) %>%
+  kable_styling(latex_options = c("HOLD_position", "repeat_header")) %>%
+  column_spec(column = 1, width = "15cm")
+```
+
+
+
+## DS3 Only
+
+```{r, echo=F}
+oe_ds3 <- other %>%
+  filter(willing_quote != "")
+```
+
+### Other Experience
+
+```{r, echo=F}
+oe_ds3 %>%
+  filter(other_experience != "") %>%
+  select(other_experience) %>%
+  kable(caption = "Other Experience (DS3 Only)", 
+        col.names = NULL, row.names = F, longtable = T) %>%
+  kable_styling(latex_options = c("HOLD_position", "repeat_header")) %>%
+  column_spec(column = 1, width = "15cm")
+```
+
+
+### Other Comments
+
+```{r, echo=F}
+oe_ds3 %>%
+  filter(other_comment != "") %>%
+  select(other_comment) %>%
+  kable(caption = "Other Comments (DS3 Only)", 
+        col.names = NULL, row.names = F, longtable = T) %>%
+  kable_styling(latex_options = c("HOLD_position", "repeat_header")) %>%
+  column_spec(column = 1, width = "15cm")
+```

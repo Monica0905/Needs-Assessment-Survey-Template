@@ -1,0 +1,371 @@
+---
+title: "Needs Assessment Analysis"
+author: "Wenshu Yang (Monica)"
+date: "3/26/2020"
+output: pdf_document
+---
+
+# Load Packages and Read data
+
+```{r setup, include=FALSE}
+# Install the needed packages if not installed yet
+if(!requireNamespace("dplyr")) install.packages("dplyr", repos = "https://cloud.r-project.org")
+if(!requireNamespace("tidytext")) install.packages("tidytext", repos = "https://cloud.r-project.org")
+if(!requireNamespace("here")) install.packages("here", repos = "https://cloud.r-project.org")
+if(!requireNamespace("ggplot2")) install.packages("ggplot2", repos = "https://cloud.r-project.org")
+if(!requireNamespace("stringr")) install.packages("stringr", repos = "https://cloud.r-project.org")
+
+# Load the packages
+require(dplyr)
+require(tidytext)
+require(here)
+require(ggplot2)
+require(stringr)
+```
+
+
+```{r}
+# here() is for reading or saving the data without specify the local directory
+here::here()
+
+needs_full <- read.csv("../Data/DS3 Needs Assessment_April 16.csv")
+```
+
+# Preprocess variable names
+
+```{r}
+# Remove redundant rows and columns
+needs <- needs_full[-(1:2), ] %>%
+  select(-StartDate, -EndDate, -Status, -IPAddress, -Duration..in.seconds., -Finished,
+         -RecordedDate, -ResponseId, -RecipientLastName, -RecipientFirstName, -RecipientEmail,
+         -ExternalReference, -LocationLatitude, -LocationLongitude, -DistributionChannel, -UserLanguage) 
+
+needs <- needs %>%
+  
+# Rename the variables
+  rename(school = Q1, school_selfenter = Q1_23_TEXT, 
+         rank = Q2, rank_selfenter = Q2_10_TEXT,
+         
+         stat_need = QID54, stat_need_selfenter = QID54_8_TEXT,
+         stat_FTE_need = Q3, stat_FTE_support = Q4,
+         stat_opinion_support = Q5, stat_univers_pool = Q6,
+         stat_access = Q7, stat_access_consult_specify = Q7_4_TEXT, stat_access_other_specify = Q7_5_TEXT,
+         stat_need_when = Q8, stat_need_reason = Q9,
+         
+         soft_need = QID34, soft_need_selfenter = QID34_8_TEXT,
+         soft_FTE_need = Q10, soft_FTE_support = Q11,
+         soft_opinion_support = Q12, soft_univers_pool = Q13,
+         soft_access = Q14, soft_access_consult_specify = Q14_4_TEXT, soft_access_other_specify = Q14_5_TEXT,
+         soft_need_when = Q15, soft_need_reason = Q16,
+         
+         willing_quote = QID51, other_experience = Q17, other_comment = Q18, email = Q19) %>%
+  
+# convert all variables to characters
+  mutate_all(as.character) %>%
+  
+# Add a column indicating respondent ID
+  mutate(id = row_number())
+  
+```
+
+
+# Separate the data by survey questions and Further cleaning
+
+To make the data easier to read and use, the subquestions (1)-(4) for the statistical methodology / software engineering checkboxes are saved as separate datasets (stat and soft). 
+
+
+## Statistical methodology needs (check box and the subquestions)
+
+```{r}
+stat <- needs %>%
+  
+# Select relevant variables
+  select(id, stat_need:X8_.4.) %>%
+  
+# Unnest the statistical methods chosen  
+  unnest_tokens(output = stat_need, input = stat_need, 
+                token = 'regex', pattern=",", to_lower = F) %>%
+  
+  mutate(
+    
+# Match the answers of subquestions (1)-(4) to the newly created variables below,
+# according to order of the checkbox
+    need_freq = case_when(
+      stat_need == "Research Design" ~ X1_.1.,
+      stat_need == "Preparation of Statistical Grant Materials" ~ X2_.1.,
+      stat_need == "Preparing the Raw Data for Analysis" ~ X6_.1.,
+      stat_need == "Model Selection and Specification" ~ X3_.1.,
+      stat_need == "Coding/Software Help" ~ X4_.1.,
+      stat_need == "Model Interpretation" ~ X5_.1.,
+      stat_need == "Data Visualization" ~ X7_.1.,
+      stat_need == "Other (please write in):" ~ X8_.1.
+      ),
+    help_extent = case_when(
+      stat_need == "Research Design" ~ X1_.2.,
+      stat_need == "Preparation of Statistical Grant Materials" ~ X2_.2.,
+      stat_need == "Preparing the Raw Data for Analysis" ~ X6_.2.,
+      stat_need == "Model Selection and Specification" ~ X3_.2.,
+      stat_need == "Coding/Software Help" ~ X4_.2.,
+      stat_need == "Model Interpretation" ~ X5_.2.,
+      stat_need == "Data Visualization" ~ X7_.2.,
+      stat_need == "Other (please write in):" ~ X8_.2.
+      ),
+    support_difficulty = case_when(
+      stat_need == "Research Design" ~ X1_.3.,
+      stat_need == "Preparation of Statistical Grant Materials" ~ X2_.3.,
+      stat_need == "Preparing the Raw Data for Analysis" ~ X6_.3.,
+      stat_need == "Model Selection and Specification" ~ X3_.3.,
+      stat_need == "Coding/Software Help" ~ X4_.3.,
+      stat_need == "Model Interpretation" ~ X5_.3.,
+      stat_need == "Data Visualization" ~ X7_.3.,
+      stat_need == "Other (please write in):" ~ X8_.3.
+      ),
+    find_difficulty = case_when(
+      stat_need == "Research Design" ~ X1_.4.,
+      stat_need == "Preparation of Statistical Grant Materials" ~ X2_.4.,
+      stat_need == "Preparing the Raw Data for Analysis" ~ X6_.4.,
+      stat_need == "Model Selection and Specification" ~ X3_.4.,
+      stat_need == "Coding/Software Help" ~ X4_.4.,
+      stat_need == "Model Interpretation" ~ X5_.4.,
+      stat_need == "Data Visualization" ~ X7_.4.,
+      stat_need == "Other (please write in):" ~ X8_.4.
+      ),
+
+# If the respondent did not answer the subquestions for checked boxes,
+# put "Not specified" for the subquestions
+    need_freq = ifelse(need_freq=="", "Unspecified", need_freq),
+    help_extent = ifelse(help_extent=="", "Unspecified", help_extent),
+    support_difficulty = ifelse(support_difficulty=="", "Unspecified", support_difficulty),
+    find_difficulty = ifelse(find_difficulty=="", "Unspecified", find_difficulty),
+
+# Change the wording of some answers to make them shorter    
+    stat_need = str_replace(stat_need, "Other \\(please write in\\)\\:", "Other"),
+    help_extent = str_replace(help_extent, "Critical to my research", "Critical to research"),
+    support_difficulty = str_replace(support_difficulty, "It is usually possible for me to do this", "Possible"),
+    find_difficulty = str_replace(find_difficulty, "It is usually possible for me to do this", "Possible"),
+
+# Relevel the need_freq, help_extent, support_difficulty
+    need_freq = factor(need_freq, levels = c("Often", "Sometimes", "Rarely", "Not at all", "Unspecified")),
+    help_extent = factor(help_extent, levels = c("Critical to research", "Greatly help", "Moderately help", "Slightly help", "Not at all", "Unspecified")),
+    support_difficulty = factor(support_difficulty, levels = c("Very hard", "Possible", "Not hard", "Unspecified")),
+    find_difficulty = factor(find_difficulty, levels = c("Very hard", "Possible", "Not hard", "Unspecified"))
+    ) %>%
+  
+# Replace the stat_need column with self entered text
+# This needs to be further processed
+  #mutate(stat_need = ifelse(stat_need == "other", stat_need_selfenter, stat_need)) %>%
+
+  select(id, stat_need, stat_need_selfenter, need_freq:find_difficulty)
+
+
+write.csv(stat, file = "../Data/Statistical Methodology Needs.csv", row.names = F)
+save(stat, file = "../Data/Statistical Methodology Needs.RDATA")
+```
+
+
+
+
+## Software engineering needs (check box and the subquestions)
+
+```{r}
+soft <- needs %>%
+  
+# Select relevant variables
+  select(id, soft_need:X8_.4..1) %>%
+  
+# Unnest the softistical methods chosen  
+  unnest_tokens(output = soft_need, input = soft_need, 
+                token = 'regex', pattern=",", to_lower = F) %>%
+    
+# Match the answers of subquestions (1)-(4) to the newly created variables below,
+# according to method number
+  mutate(need_freq = case_when(soft_need == "Web Front-end" ~ X1_.1..1,
+                               soft_need == "Web Development" ~ X2_.1..1,
+                               soft_need == "Containerization and Cloud Computing" ~ X3_.1..1,
+                               soft_need == "Python or R package building" ~ X4_.1..1,
+                               soft_need == "Software refactoring" ~ X5_.1..1,
+                               soft_need == "Database" ~ X6_.1..1,
+                               soft_need == "Mechanical Turk" ~ X7_.1..1,
+                               soft_need == "Other (please write in):" ~ X8_.1..1),
+    help_extent = case_when(soft_need == "Web Front-end" ~ X1_.2..1,
+                            soft_need == "Web Development" ~ X2_.2..1,
+                            soft_need == "Containerization and Cloud Computing" ~ X3_.2..1,
+                            soft_need == "Python or R package building" ~ X4_.2..1,
+                            soft_need == "Software refactoring" ~ X5_.2..1,
+                            soft_need == "Database" ~ X6_.2..1,
+                            soft_need == "Mechanical Turk" ~ X7_.2..1,
+                            soft_need == "Other (please write in):" ~ X8_.2..1),
+    support_difficulty = case_when(soft_need == "Web Front-end" ~ X1_.3..1,
+                                   soft_need == "Web Development" ~ X2_.3..1,
+                                   soft_need == "Containerization and Cloud Computing" ~ X3_.3..1,
+                                   soft_need == "Python or R package building" ~ X4_.3..1,
+                                   soft_need == "Software refactoring" ~ X5_.3..1,
+                                   soft_need == "Database" ~ X6_.3..1,
+                                   soft_need == "Mechanical Turk" ~ X7_.3..1,
+                                   soft_need == "Other (please write in):" ~ X8_.3..1),
+    find_difficulty = case_when(soft_need == "Web Front-end" ~ X1_.4..1,
+                                soft_need == "Web Development" ~ X2_.4..1,
+                                soft_need == "Containerization and Cloud Computing" ~ X3_.4..1,
+                                soft_need == "Python or R package building" ~ X4_.4..1,
+                                soft_need == "Software refactoring" ~ X5_.4..1,
+                                soft_need == "Database" ~ X6_.4..1,
+                                soft_need == "Mechanical Turk" ~ X7_.4..1,
+                                soft_need == "Other (please write in):" ~ X8_.4..1),
+
+# If the respondent did not answer the subquestions for checked boxes,
+# put "Not specified" for the subquestions
+    need_freq = ifelse(need_freq=="", "Unspecified", need_freq),
+    help_extent = ifelse(help_extent=="", "Unspecified", help_extent),
+    support_difficulty = ifelse(support_difficulty=="", "Unspecified", support_difficulty),
+    find_difficulty = ifelse(find_difficulty=="", "Unspecified", find_difficulty),
+
+# Change the wording of some answers to make them shorter    
+    soft_need = str_replace(soft_need, "Other \\(please write in\\)\\:", "Other"),
+    help_extent = str_replace(help_extent, "Critical to my research", "Critical to research"),
+    support_difficulty = str_replace(support_difficulty, "It is usually possible for me to do this", "Possible"),
+    find_difficulty = str_replace(find_difficulty, "It is usually possible for me to do this", "Possible"),
+
+# Relevel the need_freq, help_extent, support_difficulty
+    need_freq = factor(need_freq, levels = c("Often", "Sometimes", "Rarely", "Not at all", "Unspecified")),
+    help_extent = factor(help_extent, levels = c("Critical to research", "Greatly help", "Moderately help", "Slightly help", "Not at all", "Unspecified")),
+    support_difficulty = factor(support_difficulty, levels = c("Very hard", "Possible", "Not hard", "Unspecified")),
+    find_difficulty = factor(find_difficulty, levels = c("Very hard", "Possible", "Not hard", "Unspecified"))
+    ) %>%
+  
+# Replace the stat_need column with self entered text
+# This needs to be further processed
+  #mutate(stat_need = ifelse(stat_need == "other", stat_need_selfenter, stat_need)) %>%
+
+  select(id, soft_need, soft_need_selfenter, need_freq:find_difficulty)
+
+write.csv(soft, file = "../Data/Software Engineering Needs.csv", row.names = F)
+save(soft, file = "../Data/Software Engineering Needs.RDATA")
+```
+
+
+
+## Other questions (demographics, other statistical methodology / software engineering questions, open-ended questions)
+
+```{r}
+other <- needs %>%
+  
+  select(id, school:rank_selfenter, 
+         stat_need, stat_FTE_need:stat_need_reason,
+         soft_need, soft_FTE_need:other_comment) %>%
+
+# Rename the schools to make the school names and rank shorter
+  mutate(school = str_replace_all(school, 
+                                  c("Arts & Science" = "Arts & Science",
+                                    "College of Dentistry" = "Dentistry",
+                                    "Courant Institute of Mathematical Sciences" = "Courant",
+                                    "The Institute of Fine Arts \\(ISA\\)" = "ISA",
+                                    "Institute for the Study of the Ancient World \\(ISAW\\)" = "ISAW",
+                                    "Leonard N. Stern School of Business" = "Stern",
+                                    "Robert F. Wagner Graduate School of Public Service" = "Wagner",
+                                    "Rory Meyers College of Nursing" = "Meyers",
+                                    "School of Global Public Health" = "Global Public Health",
+                                    "School of Professional Studies" = "SPS",
+                                    "School of Law" = "Law",
+                                    "School of Medicine" = "Medicine",
+                                    "NYU Long Island School of Medicine" = "Medicine \\(Long Island\\)",
+                                    "Silver School of Social Work" = "Silver",
+                                    "Steinhardt School of Culture, Education, and Human Development" = "Steinhardt",
+                                    "Tandon School of Engineering" = "Tandon",
+                                    "Tisch School of the Arts" = "Tisch",
+                                    "NYU Abu Dhabi" = "NYU Abu Dhabi",
+                                    "NYU Shanghai" = "NYU Shanghai",
+                                    "The Center for Urban Science and Progress \\(CUSP\\)" = "CUSP",
+                                    "The Center for Data Science \\(CDS\\)" = "CDS",
+                                    "Marron Institute" = "Marron",
+                                    "School Affiliation not listed above \\(Please specify below\\)" = "other")),
+         rank = str_replace(rank, "Not listed above \\(Please specify below\\)", "other"),
+         stat_opinion_support = str_replace(stat_opinion_support, "donâ€™t", "don't"),
+         soft_opinion_support = str_replace(soft_opinion_support, "donâ€™t", "don't")) %>%
+
+  
+# Transform the statistical methodology / software engineering access (questions with multiple choices) into binary variables
+  mutate(stat_access_none = as.logical(ifelse(stat_access=="", "", grepl("I don", stat_access))),
+         stat_access_student = as.logical(ifelse(stat_access=="", "", grepl("Hire a student", stat_access))),
+         stat_access_prof = as.logical(ifelse(stat_access=="", "", grepl("Collaborate with a professor", stat_access))),
+         stat_access_consult = as.logical(ifelse(stat_access=="", "", grepl("Seek consultation from outside the university", stat_access))),
+         stat_access_other = as.logical(ifelse(stat_access=="", "", grepl("Other", stat_access))),
+         
+         soft_access_none = as.logical(ifelse(soft_access=="", "", grepl("I don", soft_access))),
+         soft_access_student = as.logical(ifelse(soft_access=="", "", grepl("Hire a student", soft_access))),
+         soft_access_prof = as.logical(ifelse(soft_access=="", "", grepl("Collaborate with a professor", soft_access))),
+         soft_access_consult = as.logical(ifelse(soft_access=="", "", grepl("Seek consultation from outside the university", soft_access))),
+         soft_access_other = as.logical(ifelse(soft_access=="", "", grepl("Other", soft_access)))) %>%
+
+# Convert the FTEs into numeric values
+  mutate_at(c("stat_FTE_need", "stat_FTE_support", "soft_FTE_need", "soft_FTE_support"),
+            function(x) as.numeric(str_remove(x, " FTEs"))) %>%
+  
+# Convert some variables to factor and relevel
+  mutate(stat_opinion_support = factor(stat_opinion_support, 
+                                       levels = c("I don’t need to hire anyone to help with statistical methodology", "It is usually possible for me to hire the personnel needed to satisfy my needs through grants on my own.", "I would usually be able to support the level of effort that I need through grants, but it is difficult to hire skilled people given the duration of contracts and/or level of effort I require.", "Usually I can only partially support the level of effort that I need through grants (even if hiring wasn't an obstacle).", "It is unlikely that I could support any of my needs through grants.")),
+         soft_opinion_support = factor(soft_opinion_support, 
+                                       levels = c("I don’t need to hire anyone to help with software engineering", "It is usually possible for me to hire the personnel needed to satisfy my needs through grants on my own.", "I would usually be able to support the level of effort that I need through grants, but it is difficult to hire skilled people given the duration of contracts and/or level of effort I require.", "Usually I can only partially support the level of effort that I need through grants (even if hiring wasn't an obstacle).", "It is unlikely that I could support any of my needs through grants.")),
+         stat_univers_pool = factor(stat_univers_pool, 
+                                    levels = c("I do not need any of these services.", "I am skeptical of an arrangement where I didn't hire the person myself.", "I would consider contracting such services as long as there is someone that is a good fit for my needs.", "I would be happy to contract these services through a university pool.")),
+         soft_univers_pool = factor(soft_univers_pool, 
+                                    levels = c("I do not need any of these services.", "I am skeptical of an arrangement where I didn't hire the person myself.", "I would consider contracting such services as long as there is someone that is a good fit for my needs.", "I would be happy to contract these services through a university pool")),
+         stat_need_when = factor(stat_need_when, levels = c("Before a grant is submitted", "After receiving a grant", "Both before and after grants are submitted", "Regardless of whether I am applying for a grant.")),
+         soft_need_when = factor(soft_need_when, levels = c("Before a grant is submitted", "After receiving a grant", "Both before and after grants are submitted", "Regardless of whether I am applying for a grant.")),
+         stat_need_reason = factor(stat_need_reason, levels = c("They are methods or things that you know how to do but do not have the time to implement yourself.", "They are methods or things that are innovative that you potentially have not used yourself, but could help push forward the research.")),
+         soft_need_reason = factor(soft_need_reason, levels = c("They are methods or things that you know how to do but do not have the time to implement yourself.", "They are methods or things that are innovative that you potentially have not used yourself, but could help push forward the research."))) %>%
+  
+# Reorder the columns    
+  select(id:rank_selfenter,
+         
+         stat_need, stat_FTE_need:stat_univers_pool, stat_need_when:stat_need_reason, 
+         stat_access, stat_access_none:stat_access_consult, stat_access_consult_specify, stat_access_other, stat_access_other_specify,
+         
+         soft_need, soft_FTE_need:soft_univers_pool, soft_need_when:soft_need_reason,
+         soft_access, soft_access_none:soft_access_consult, soft_access_consult_specify, soft_access_other, soft_access_other_specify,
+         
+         willing_quote:other_comment)
+  
+
+
+write.csv(other, file = "../Data/Other Questions.csv", row.names = F)
+save(other, file = "../Data/Other Questions.RDATA")
+```
+
+
+
+
+
+# Analyis (just some thoughts...)
+
+
+```{r}
+#table(stat$stat_need)
+
+#research_design <- stat %>%
+  #filter(stat_need == "research design")
+#apply(research_design[, -1], 2, table)
+
+#tapply(stat$need_freq, stat$stat_need, table)
+
+
+# needs freqency
+need_freq_cnt <- stat %>%
+  group_by(stat_need, need_freq) %>%
+  summarise(cnt = n())
+
+ggplot(need_freq_cnt, aes(x = stat_need, y = cnt, fill = need_freq)) +
+  geom_bar(stat="identity") +
+  xlab("Statistical Methodology") +
+  ylab("Number of Respondens") +
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+
+```
+
+
+
+```{r}
+table(soft$soft_need)
+```
+
+

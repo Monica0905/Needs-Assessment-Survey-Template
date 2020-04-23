@@ -1,0 +1,465 @@
+---
+title: "Statistical and Software Needs at NYU"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+## Packages needed
+packages <- c("tidyverse", "here", "ggplot2", "knitr", "kableExtra", "tidytext", "ggpubr")
+
+## Write a function to install the packages if they haven't been installed,
+## and to load the packages
+install <- function(pack) {
+  if(!requireNamespace(pack)) {
+    install.packages(pack, repos = "https://cloud.r-project.org")
+  }
+}
+
+## Run the funciton to install and load needed packages 
+sapply(packages, install)
+sapply(packages, require, character.only = T)
+
+
+# Read data
+
+here::here()
+
+## Statisitcal methodology checkbox and subquestions
+#stat <- read_csv("../Data/Statistical Methodology Needs.csv")
+load("../Data/Statistical Methodology Needs.RDATA")
+
+## Software engineering checkbox and subquestions
+#soft <- read_csv("../Data/Software Engineering Needs.csv")
+load("../Data/Software Engineering Needs.RDATA")
+
+## Other questions
+load("../Data/Other Questions.RDATA")
+```
+
+
+
+```{r function, include=FALSE}
+# Function creating the frequency table
+
+freq_table <- function(tab, var_name, 
+                       transform = FALSE, ordered = FALSE,
+                       caption = NULL, width_col1 = NULL, width_col2 = NULL) {
+  
+  # tab is a data frame with frequency, 
+  # or a vector that needs to be transformed into frequency table
+  
+  if (transform) {
+    tab <- as.data.frame(table(tab))
+  }
+  
+  if (ordered) {
+    tab <- tab[order(tab[, 2], decreasing = T), ]
+  }
+  
+  tab %>%
+    kable(booktabs = T,
+          caption = caption, col.names = c(var_name, "N"), row.names = F) %>%
+    kable_styling(latex_options = "striped") %>%
+    kable_styling(latex_options = "HOLD_position") %>%
+    column_spec(column = 1, width = width_col1) %>%
+    column_spec(column = 2, width = width_col2) %>%
+    row_spec(0, bold = T)
+    
+}
+
+```
+
+```{r include = FALSE}
+
+
+
+# Function capitalizing the first letter in the phrase
+capital <- function(x, word1_only = F) {
+  
+  if (word1_only) {
+    s <- x
+    X <- NA
+    for (i in 1:length(s)) {
+      X[i] <- paste0(toupper(substring(s[[i]], 1,1)), substring(s[[i]], 2))
+    } 
+  } else {
+    s <- strsplit(x, " ")
+    X <- NA
+    for (i in 1:length(s)) {
+      X[i] <- paste(toupper(substring(s[[i]], 1,1)), substring(s[[i]], 2),
+        sep="", collapse=" ")
+    }
+  }
+  
+  
+  return(X)
+}
+```
+
+
+```{r number of participants, include=FALSE}
+n_participant <- nrow(other)
+```
+
+```{r number of schools, include = FALSE}
+# School
+
+schools <- other %>%
+  
+  # Select relevant variables and drop rows with missing school
+  select(id, school, school_selfenter) %>%
+  filter(!is.na(school)) %>%
+  
+  # Unnest the schools  
+  unnest_tokens(output = school, input = school, token = 'regex', pattern=",", to_lower = FALSE) %>%
+  
+  # Add a column of the grouped "other" categories,
+  # and replace the "other" in the school variable with the grouped other categories
+  mutate(school_selfenter_g = case_when(school_selfenter=="Gallatin School of Individualized Study" ~ "Gallatin",
+                                        school_selfenter=="NYU Student Health Center" ~ "Student Health Center",
+                                        TRUE ~ school_selfenter),
+         
+         school = ifelse(school=="other", school_selfenter_g, school)) %>%
+
+  # Compute the number of participants of each school
+  group_by(school) %>%
+  summarise(n = n()) %>%
+  ungroup() %>%
+  
+  # Arrange by the number of participants
+  arrange(-n)
+
+n_schools = dim(schools)[[1]]
+```
+
+In the Spring of 2020, the Data Sciences and Software Services (DS3) group at NYU distributed a survey to assess the current needs and use of statisticians and software engineers across the university. As to date, `r n_participant`  participants have responded representing affiliations with `r n_schools` schools or centers across the university.
+
+# Statistical Methodology Results
+
+```{r include = FALSE}
+# Group the "Other" categories 
+# and replace the "Other" in the stat_need variable with the grouped other categories
+stat <- stat %>%
+  mutate(stat_need_selfenter_g = case_when(stat_need_selfenter %in% c("Does not relate", "N/A", "None", "none of the above") ~ "",
+                                           stat_need_selfenter %in% c("Big data infrastructure", "Help with support for our big data cluster, Dumbo. It needs upgrading, it is missing a big data visualization tool, such as Tableau.") ~ "Big Data",
+                                           stat_need_selfenter %in% c("large scale simulations", "Simulation") ~ "Simulation",
+                                           stat_need_selfenter %in% c("Optimizing code to be run on distributed high performance computing systems", "Use of HPC") ~ "HPC",
+                                           stat_need_selfenter %in% c("All used in work", "Everything--statistical epidemiology") ~ "Everything",
+                                           stat_need_selfenter == "Determining the best statistical method to analyse a particular data set" ~ "Model Selection and Specification",
+                                           stat_need_selfenter == "survey design, crowd sourced experiments" ~ "Research Design",
+                                           grepl("specific software", stat_need_selfenter) ~ "Coding/Software Help",
+                                           grepl("Developing packages for CRAN", stat_need_selfenter) ~ "",
+                                           
+                                           TRUE ~ stat_need_selfenter)) %>%
+         
+         mutate(stat_need = ifelse(stat_need=="Other", stat_need_selfenter_g, stat_need)) 
+
+
+stat_needs <- stat %>%
+  
+  # Select relevant variables and drop rows with missing stat_need
+  select(id, stat_need) %>%
+  filter(stat_need != "") %>%
+
+  # Compute the number of participants of each statistical methodology
+  group_by(stat_need) %>%
+  summarise(n = n()) %>%
+  ungroup() %>%
+  
+  # Arrange by the number of participants
+  arrange(-n) %>%
+  
+  mutate(stat_need = capital(stat_need))
+
+n_statneed = dim(stat_needs)[[1]]
+
+```
+
+With regards to statistical needs, respondents indicated that they needed assistance with `r n_statneed` areas of statistics. The following table displays these areas along with the number of respondents who indicated this need.
+
+```{r, echo=FALSE}
+# Table and barplot
+freq_table(stat_needs[, c("stat_need", "n")], "Statistical Methodology", caption = "Statistical Methodology in Need")
+```
+
+```{r, echo = F}
+
+# FTE needed
+stat_FTE_needs <- other %>%
+  filter(!is.na(stat_FTE_need)) %>%
+  mutate(stat_FTE_need = factor(stat_FTE_need)) %>%
+  group_by(stat_FTE_need) %>%
+  summarise(N = n()) %>%
+  ## weighted sum
+  mutate(ws = sum(as.numeric(as.character(stat_FTE_need)) * N))
+
+#freq_table(stat_FTE_needs[, 1:2], "FTE", caption = "FTE Needed for Statistical Methodology") %>%
+#  footnote(general = paste(stat_FTE_needs$ws[1], " FTE needed"),
+#  general_title = "Total: ", 
+#  footnote_as_chunk = T, title_format = c("italic", "underline"))
+
+# FTE supported
+stat_FTE_supports <- other %>%
+  filter(!is.na(stat_FTE_support)) %>%
+  mutate(stat_FTE_support = factor(stat_FTE_support)) %>%
+  group_by(stat_FTE_support) %>%
+  summarise(N = n()) %>%
+  ## weighted sum
+  mutate(ws = sum(as.numeric(as.character(stat_FTE_support)) * N))
+
+d = data.frame(FTE_Needed = stat_FTE_needs$ws[1], FTE_Supported = stat_FTE_supports$ws[1],
+           Needs_Supports_Gap = stat_FTE_needs$ws[1] - stat_FTE_supports$ws[1],
+           Pct_Needs_Supported = paste0(round(stat_FTE_supports$ws[1] / stat_FTE_needs$ws[1] * 100, 1), "%")) 
+
+```
+
+
+In order to better understand the extent of these needs, respondents were asked to indicate the number of full time equivalent (FTE) personnel that they could currently support, and the number they needed to satisfy their research needs across their projects. The following table presents the research needs we observed. Therefore, we observed that among our sample of `r n_participant` respondents, a total of `r d$Pct_Needs_Supported` of needs were currently met. 
+
+
+```{r, echo=F}
+data.frame(FTE_Needed = stat_FTE_needs$ws[1], FTE_Supported = stat_FTE_supports$ws[1],
+           Needs_Supports_Gap = stat_FTE_needs$ws[1] - stat_FTE_supports$ws[1],
+           Pct_Needs_Supported = paste0(round(stat_FTE_supports$ws[1] / stat_FTE_needs$ws[1] * 100, 1), "%"))  %>%
+  kable(booktabs = T,
+        caption = "Gap Between Statistical FTE Needed and FTE Supported", col.names = c("FTE Needed", "FTE Supported", "Needs & Supports Gap", "% of Needs Supported"), row.names = F) %>%
+    kable_styling(latex_options = "striped") %>%
+    kable_styling(latex_options = "HOLD_position") %>%
+    row_spec(0, bold = T)
+```
+
+The following two tables display respondents opinions on their ability to support their statistical methodology needs through their grants, and whether they would feel comfortable contracting statistical services from a university pool. Of `r n_participant` participants in the survey, `r sum(table(other$stat_opinion_support)[3:5])` indicated that they needed help supporting or locating skilled individuals to meet their statistical needs.
+
+```{r, echo=F}
+freq_table(other$stat_opinion_support, "Opinion", 
+           transform = T, width_col1 = "15cm",
+           caption = "Supporting Statistical Methodology Needs Through Grants")
+
+```
+
+Similarly, the next table shows that `r sum(table(other$stat_univers_pool)[3:4])` respondents indicated interest in contracting a statistical methodologist through a university pool.
+```{r, echo=F}
+freq_table(other$stat_univers_pool, "Opinion", 
+           transform = T, width_col1 = "15cm",
+           caption = "Contracting Statistical Methodology Services From a University Pool")
+
+```
+
+```{r, echo = F}
+stat_accesses <- other %>%
+  
+  select(id, stat_access, stat_access_other_specify) %>%
+  
+  # Unnest the accesses
+  unnest_tokens(output = stat_access, input = stat_access, token = 'regex', pattern=",", to_lower = FALSE) %>%
+  
+  # Group the "other" categories 
+  mutate(stat_access_other_specify_g = case_when(stat_access_other_specify %in% c("Do it myself", "do it on my own", "I'm a biostatistician", "I am a statistician", "I try to do them myself", "spend the effort myself") ~ "Do it myself",
+                                                 stat_access_other_specify %in% c("College of Nursing statisticians", "Consult within the school", "Internal Research Scientist", "or Consult with colleagues", "Reach out to the medical school's stats pool.", "See if anyone is available in my dept", "We have a core of biostatisticians at Meyers ", "hire a research associate", "Hired staff who is staffed on multiple projects providing this kind of support") ~ "Consult / hire within school",
+                                                 TRUE ~ stat_access_other_specify)) %>%
+  # Replace the category of other
+  mutate(stat_access = ifelse(stat_access=="Other (Please specify which:)", stat_access_other_specify_g, stat_access),
+         stat_access = ifelse(stat_access=="Seek consultation from outside the university (Please specify which:)", "Seek consultation from outside the university", stat_access)) %>%
+  
+  # Compute the number of participants of each access
+  group_by(stat_access) %>%
+  summarise(n = n()) %>%
+  ungroup() %>%
+  
+  # Arrange by the number of participants
+  filter(stat_access != "") %>%
+  arrange(-n) %>%
+  
+  # Capitalize the first letter
+  mutate(stat_access = capital(stat_access, word1_only = T))
+```
+
+When asked about how they currently access statistical methodology help, `r stat_accesses$n[stat_accesses$stat_access == "Seek consultation from outside the university"]` respondents indicated that they currently seek consultation from outside the university. The places from where these consultations were solicited included NYU's competitors (e.g., Harvard, Illinois, Columbia) as well as online and consulting companies. Furthermore, `r table(other$stat_need_reason)[2]` respondents indicated that the reason they needed help with statistical methodology was to implement innovative methods that could help push forward their research in ways they currently were unable to do themselves.
+
+# Software Engineering Results
+
+```{r, include = F}
+# FTE needed
+soft_FTE_needs <- other %>%
+  filter(!is.na(soft_FTE_need)) %>%
+  mutate(soft_FTE_need = factor(soft_FTE_need)) %>%
+  group_by(soft_FTE_need) %>%
+  summarise(N = n()) %>%
+  ## weighted sum
+  mutate(ws = sum(as.numeric(as.character(soft_FTE_need)) * N))
+```
+
+
+```{r, echo=FALSE}
+# Add the "Developing packages for CRAN" in the self-entered "Other" text 
+# of Statistical Methodology part to the Software Engineering part
+dev_pack <- stat %>%
+  filter(stat_need_selfenter == "Developing packages for CRAN",
+         stat_need == "") %>%
+  rename(soft_need = stat_need, soft_need_selfenter = stat_need_selfenter) %>%
+  select(-stat_need_selfenter_g)
+
+soft <- rbind(soft, dev_pack) 
+
+# Group the "Other" categories 
+# and replace the "Other" in the soft_need variable with the grouped other categories
+soft <- soft %>%
+  mutate(soft_need_selfenter_g = case_when(soft_need_selfenter %in% c("N/A", "none", "None") ~ "",
+                                           grepl("scraping", tolower(soft_need_selfenter)) ~ "Scraping",
+                                           soft_need_selfenter == "Developing packages for CRAN" ~ "Python or R package building",
+                                           soft_need_selfenter == "software engineering for numerical optimization" ~ "Numerical Optimization",
+                                           soft_need_selfenter == "Spark and Hadoop tools programming." ~ "Spark & Hadoop",
+                                           TRUE ~ soft_need_selfenter)) %>%
+  
+  mutate(soft_need = ifelse(soft_need %in% c("Other", ""), soft_need_selfenter_g, soft_need))
+
+
+# Prepare the frequency data frame
+soft_needs <- soft %>%
+  
+  # Select relevant variables and drop rows with missing soft_need
+  select(id, soft_need) %>%
+  filter(soft_need != "") %>%
+
+  # Compute the number of participants of each school
+  group_by(soft_need) %>%
+  summarise(n = n()) %>%
+  ungroup() %>%
+  
+  # Arrange by the number of participants
+  arrange(-n) %>%
+  
+  mutate(soft_need = capital(soft_need))
+
+n_softneed = dim(soft_needs)[[1]]
+
+```
+
+A similar investigation of needs pertaining to Software Engineering was conducted. Respondents indicated that they needed assistance with `r n_softneed` areas of software engineering. The following table displays these areas along with the number of respondents who indicated this need.
+
+```{r, echo = F}
+# Table and barplot
+
+freq_table(soft_needs[, c("soft_need", "n")], "Software Engineering", caption = "Software Engineering in Need")
+```
+
+```{r, include = F}
+freq_table(soft_FTE_needs[, 1:2], "FTE", caption = "FTE Needed for Software Engineering") %>%
+  footnote(general = paste(soft_FTE_needs$ws[1], " FTE needed"),
+  general_title = "Total: ", 
+  footnote_as_chunk = T, title_format = c("italic", "underline"))
+
+
+
+# FTE supported
+soft_FTE_supports <- other %>%
+  filter(!is.na(soft_FTE_support)) %>%
+  mutate(soft_FTE_support = factor(soft_FTE_support)) %>%
+  group_by(soft_FTE_support) %>%
+  summarise(N = n()) %>%
+  ## weighted sum
+  mutate(ws = sum(as.numeric(as.character(soft_FTE_support)) * N))
+
+freq_table(soft_FTE_supports[, 1:2], "FTE", caption = "FTE Supported for Software Engineering") %>%
+  footnote(general = paste(soft_FTE_supports$ws[1], " FTE supported"),
+  general_title = "Total: ", 
+  footnote_as_chunk = T, title_format = c("italic", "underline"))
+
+```
+
+```{r, echo = F}
+d_soft = data.frame(FTE_Needed = soft_FTE_needs$ws[1], FTE_Supported = soft_FTE_supports$ws[1],
+           Needs_Supports_Gap = soft_FTE_needs$ws[1] - soft_FTE_supports$ws[1],
+           Pct_Needs_Supported = paste0(round(soft_FTE_supports$ws[1] / soft_FTE_needs$ws[1] * 100, 1), "%")) 
+```
+
+In order to better understand the extent of these needs, respondents were asked to indicate the number of FTE personnel that they could currently support, and the number they needed to satisfy their research needs across their projects. The following table presents the research needs we observed. Therefore, we observed that among our sample of `r n_participant` respondents, a total of `r d_soft$Pct_Needs_Supported` of needs were currently met.
+
+```{r, echo=F}
+data.frame(FTE_Needed = soft_FTE_needs$ws[1], FTE_Supported = soft_FTE_supports$ws[1],
+           Needs_Supports_Gap = soft_FTE_needs$ws[1] - soft_FTE_supports$ws[1],
+           Pct_Needs_Supported = paste0(round(soft_FTE_supports$ws[1] / soft_FTE_needs$ws[1] * 100, 1), "%")) %>%
+  kable(booktabs = T,
+        caption = "Gap Between Software FTE Needed and FTE Supported", col.names = c("FTE Needed", "FTE Supported", "Needs & Supports Gap", "% of Needs Supported"), row.names = F) %>%
+    kable_styling(latex_options = "striped") %>%
+    kable_styling(latex_options = "HOLD_position") %>%
+    row_spec(0, bold = T)
+```
+ 
+The following two tables display respondents opinions on their ability to support their software engineering needs through their grants, and whether they would feel comfortable contracting such services from a university pool. Of `r n_participant` participants in the survey, `r sum(table(other$soft_opinion_support)[3:5])` indicated that they needed help supporting or locating skilled individuals to meet their software needs.
+
+```{r, echo=F}
+freq_table(other$soft_opinion_support, "Opinion", 
+           transform = T, width_col1 = "15cm",
+           caption = "Supporting Software Engineering Needs Through Grants")
+
+```
+
+Similarly, the next table shows that `r sum(table(other$soft_univers_pool)[3:4])` respondents indicated interest in contracting a software engineer through a university pool.
+
+```{r, echo=F}
+freq_table(other$soft_univers_pool, "Opinion", 
+           transform = T, width_col1 = "15cm",
+           caption = "Opinion about contracting software engineering services from a university pool")
+
+```
+
+```{r, echo = F}
+soft_accesses <- other %>%
+  
+  select(id, soft_access, soft_access_other_specify) %>%
+  
+  # Unnest the accesses
+  unnest_tokens(output = soft_access, input = soft_access, token = 'regex', pattern=",", to_lower = FALSE) %>%
+  
+  # Group the "other" categories 
+  mutate(soft_access_other_specify_g = case_when(grepl("myself", tolower(soft_access_other_specify)) | grepl("personally", tolower(soft_access_other_specify)) ~ "Do it myself",
+                                                 #soft_access_other_specify == "Personally and through students" ~ "Do it myself",
+                                                 soft_access_other_specify %in% c("Current research programmer, who will only be on staff for a year", "hire a software engineer", "Hire a staff member") ~ "Hire software staff",
+                                                 grepl("postdoc", tolower(soft_access_other_specify)) ~ "Postdocs",
+                                                 TRUE ~ soft_access_other_specify)) %>%
+  # Replace the category of other
+  mutate(soft_access = ifelse(soft_access=="Other (Please specify which:)", soft_access_other_specify_g, soft_access),
+         soft_access = ifelse(soft_access=="Seek consultation from outside the university (Please specify which:)", "Seek consultation from outside the university", soft_access)) %>%
+  
+  # Compute the number of participants of each access
+  group_by(soft_access) %>%
+  summarise(n = n()) %>%
+  ungroup() %>%
+  
+  # There is a respondent writing "Personally and through students".
+  # I grouped this into "Do it myself",
+  # so I added 1 more count into the "Hire a student" category
+  mutate(n = ifelse(soft_access == "Hire a student", n+1, n)) %>%
+  
+  # Arrange by the number of participants
+  filter(soft_access != "") %>%
+  arrange(-n) %>%
+  
+  # Capitalize the first letter
+  mutate(soft_access = capital(soft_access, word1_only = T))
+```
+
+When asked about how they currently access software engineering help, `r soft_accesses$n[soft_accesses$stat_access == "Seek consultation from outside the university"]` respondents indicated that they currently seek consultation from outside the university. The places from where these consultations were solicited included hiring independent developers. Furthermore, `r table(other$soft_need_reason)[2]` respondents indicated that the reason they needed help with software engineering was to implement innovative methods that could help push forward their research in ways they currently were unable to do themselves.
+
+# Testimonials
+
+``Having a pool of people who could help with statistics and software would greatly improve my ability to pursue more competitive grants than the ones I am currently able to do without having any support. There are simply technical skills that I don't have that would be helpful both pre-and post- award.''
+
+``We do not have the staff expertise or budget to take advantage of the research opportunities in our area or work (focused on defending/promoting academic freedom globally). Expertise/support in these areas would advance our work and its impact substantially''
+
+``It would make me more productive as I usually wind up doing these things on my own which takes a lot of time and sometimes I don't completely know what I am doing and need to take time to learn as I go''
+
+``Not having access to statistical services is a hindrance in advancing my research work. If access to statistical services were readily available it would enhance the rigor of grant application and enable purchasing these services for the grant-related activities once the grant was funded.''
+
+``Having access to software engineering services, in particular for numerical optimization, would significantly help my research productivity.''
+
+``It would be helpful to have assistance with statistical analysis during study design and preparation of manuscripts for publication. Having access to personnel who can create/run Python and R packages will be helpful in study design - we can now propose do to experiments/large-scale sequencing studies that require this expertise and would not have been able to do so before''
+
+``Such a service would help me to make my algorithms more widely available. I do not have the time/interest to turn them into usable packages right now, I just write papers and have code formed by my students. Hiring someone to tidy up the code and make it accessible on a wide range of platforms would be very useful, but I can’t do this on my grants.''
+
+``The famous quote by Maslow "I suppose it is tempting, if the only tool you have is a hammer, to treat everything as if it were a nail" describes my experience with statistical and data-related tools. My research and approach is limited not by what can be done, but what I am aware of and feel capable of using. Additional supports for data and statistical services would allow me to ask questions I can't yet imagine and find answers I couldn’t predict''
+
+``The NSF has embraced the importance of data science as one of it's 10 big ideas and also has an office of cyber infrastructure. Software is a big part of those projects, but it they are usually focused on a science objective so the budget needs to include a graduate student and/or postdoc. The budgets are usually not large enough to hire a full-time software engineer, but they do allow for ~1/4 to 1/2 FTE. The problem is it is nearly impossible to hire someone with this arrangement... A university service where I could contract out skilled software engineers would be address my unmet need''
+
+``This is a great idea, an entity at NYU that provides fee-for-service statistical, modeling, website development would be fantastic.''
