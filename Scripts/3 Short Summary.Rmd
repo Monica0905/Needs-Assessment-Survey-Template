@@ -440,7 +440,7 @@ soft_accesses <- other %>%
   mutate(soft_access = capital(soft_access, word1_only = T))
 ```
 
-When asked about how they currently access software engineering help, `r soft_accesses$n[soft_accesses$stat_access == "Seek consultation from outside the university"]` respondents indicated that they currently seek consultation from outside the university. The places from where these consultations were solicited included hiring independent developers. Furthermore, `r table(other$soft_need_reason)[2]` respondents indicated that the reason they needed help with software engineering was to implement innovative methods that could help push forward their research in ways they currently were unable to do themselves.
+When asked about how they currently access software engineering help, `r soft_accesses$n[soft_accesses$soft_access == "Seek consultation from outside the university"]` respondents indicated that they currently seek consultation from outside the university. The places from where these consultations were solicited included hiring independent developers. Furthermore, `r table(other$soft_need_reason)[2]` respondents indicated that the reason they needed help with software engineering was to implement innovative methods that could help push forward their research in ways they currently were unable to do themselves.
 
 # Testimonials
 
