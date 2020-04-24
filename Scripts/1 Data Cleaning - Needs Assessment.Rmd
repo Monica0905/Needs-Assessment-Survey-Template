@@ -153,10 +153,6 @@ stat <- needs %>%
     support_difficulty = factor(support_difficulty, levels = c("Very hard", "Possible", "Not hard", "Unspecified")),
     find_difficulty = factor(find_difficulty, levels = c("Very hard", "Possible", "Not hard", "Unspecified"))
     ) %>%
-  
-# Replace the stat_need column with self entered text
-# This needs to be further processed
-  #mutate(stat_need = ifelse(stat_need == "other", stat_need_selfenter, stat_need)) %>%
 
   select(id, stat_need, stat_need_selfenter, need_freq:find_difficulty)
 
@@ -234,10 +230,6 @@ soft <- needs %>%
     support_difficulty = factor(support_difficulty, levels = c("Very hard", "Possible", "Not hard", "Unspecified")),
     find_difficulty = factor(find_difficulty, levels = c("Very hard", "Possible", "Not hard", "Unspecified"))
     ) %>%
-  
-# Replace the stat_need column with self entered text
-# This needs to be further processed
-  #mutate(stat_need = ifelse(stat_need == "other", stat_need_selfenter, stat_need)) %>%
 
   select(id, soft_need, soft_need_selfenter, need_freq:find_difficulty)
 
