@@ -282,6 +282,7 @@ other <- needs %>%
                                     "Marron Institute" = "Marron",
                                     "School Affiliation not listed above \\(Please specify below\\)" = "other")),
          rank = str_replace(rank, "Not listed above \\(Please specify below\\)", "other"),
+         # On some computers the ' symbol might appear as garbled character
          stat_opinion_support = str_replace(stat_opinion_support, "donâ€™t", "don't"),
          soft_opinion_support = str_replace(soft_opinion_support, "donâ€™t", "don't")) %>%
 
