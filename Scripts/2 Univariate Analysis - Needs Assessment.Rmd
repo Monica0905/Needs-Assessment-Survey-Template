@@ -453,6 +453,7 @@ stat <- stat %>%
   ## which can be used for the grouping
   mutate(stat_need_selfenter_g = case_when(stat_need_selfenter %in% c("None", "none of the above") ~ "",
                                            stat_need_selfenter %in% c("large scale simulations") ~ "Simulation", 
+                                           stat_need_selfenter %in% c("otherstat") ~ "Other", 
                                            TRUE ~ stat_need_selfenter)) %>%
          
          mutate(stat_need = ifelse(stat_need %in% c("Other", ""), stat_need_selfenter_g, stat_need)) 
@@ -484,7 +485,11 @@ ggplot(stat_needs, aes(x = reorder(stat_need, -n), y = n)) +
   theme(axis.text.x = element_text(angle = 60, hjust = 1),
         plot.title = element_text(hjust = 0.5)) +
   ggtitle("Statistical Methodology in Need") +
-  xlab("Statistical Methodology") + ylab("N")
+  xlab("Statistical Methodology") + ylab("N") +
+  ## The x axis labels might need more adjustments according to the actual data
+  scale_x_discrete(labels = c("Preparing The Raw Data For Analysis" = "Preparing Raw Data \n for Analysis",
+                              "Preparation Of Statistical Grant Materials" = "Statistical Grant \n Material Preparation",
+                              "Model Selection And Specification" = "Model Selection \n & Specification"))
 ```
 
 
@@ -755,7 +760,7 @@ soft <- soft %>%
   ## The next chunk {r other soft} provides to codes to see all the self-entered other software engineering
   ## which can be used for the grouping
   mutate(soft_need_selfenter_g = case_when(soft_need_selfenter %in% c("none", "none of the above") ~ "",
-                                           soft_need_selfenter == "Spark and Hadoop tools programming." ~ "Spark & Hadoop",
+                                           soft_need_selfenter == "Spark and Hadoop tools programming" ~ "Spark & Hadoop",
                                            TRUE ~ soft_need_selfenter)) %>%
   
   mutate(soft_need = ifelse(soft_need %in% c("Other", ""), soft_need_selfenter_g, soft_need))
@@ -790,7 +795,8 @@ ggplot(soft_needs, aes(x = reorder(soft_need, -n), y = n)) +
   ggtitle("Software Engineering in Need") +
   xlab("Software Engineering") + ylab("N") +
   ## The x axis labels might need more adjustments according to the actual data
-  scale_x_discrete(labels = c("Containerization And Cloud Computing" = "Containerization & Cloud Computing"))
+  scale_x_discrete(labels = c("Containerization And Cloud Computing" = "Containerization & \n Cloud Computing",
+                              "Python Or R Package Building" = "Python / R \n Package Building"))
 ```
 
 
