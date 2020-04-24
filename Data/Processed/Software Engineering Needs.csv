@@ -43,3 +43,7 @@
 22,"Software refactoring","","Sometimes","Critical to research","Possible","Possible"
 23,"Containerization and Cloud Computing","","Sometimes","Slightly help","Possible","Possible"
 23,"Mechanical Turk","","Often","Critical to research","Possible","Possible"
+24,"Python or R package building","","Rarely","Unspecified","Unspecified","Unspecified"
+25,"Other","none","Unspecified","Unspecified","Unspecified","Unspecified"
+26,"Other","none of the above","Unspecified","Unspecified","Unspecified","Unspecified"
+27,"Other","Spark and Hadoop tools programming","Rarely","Moderately help","Very hard","Very hard"
