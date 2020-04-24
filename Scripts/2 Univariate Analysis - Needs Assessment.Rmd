@@ -330,6 +330,11 @@ schools <- other %>%
   
   # Add a column of the grouped "other" categories,
   # and replace the "other" in the school variable with the grouped other categories
+  
+  ## The following code line is just an example of grouping / renaming other schools, 
+  ## and it should be adjusted according to the actual data.
+  ## The next chunk {r other school} provides to codes to see all the self-entered other schools
+  ## which can be used for the grouping
   mutate(school_selfenter_g = case_when(school_selfenter=="Gallatin School of Individualized Study" ~ "Gallatin",
                                         school_selfenter=="NYU Student Health Center" ~ "Student Health Center",
                                         TRUE ~ school_selfenter),
@@ -358,6 +363,16 @@ ggplot(schools, aes(x = reorder(school, -n), y = n)) +
 
 
 
+```{r other school, echo=FALSE, results='hide'}
+other_schools <- other$school_selfenter[other$school_selfenter!=""]
+
+if (length(other_schools) > 0) {
+  freq_table(other_schools, "Other School", transform = T, ordered = T)
+}
+```
+
+
+
 ## Rank 
 
 **Q2: What is your current rank?**
@@ -376,12 +391,13 @@ ranks <- other %>%
   
   # Add a column of the grouped "other" categories,
   # and replace the "other" in the rank variable with the grouped other categories
+ 
+  ## The following code line is just an example of grouping / renaming other ranks, 
+  ## and it should be adjusted according to the actual data.
+  ## The next chunk {r other rank} provides to codes to see all the self-entered other ranks
+  ## which can be used for the grouping
   mutate(rank_selfenter_g = case_when(tolower(rank_selfenter) %in% c("research scholar", "ft research staff", "research fellow", "research staff") ~ "Research Staff / Fellow",
-                                      tolower(rank_selfenter) %in% c("administrator", "assistant director / administrator") ~ "Administrator",
-                                      tolower(rank_selfenter) %in% c("center director, nonfaculty", "director", "executive director", "executive director of a center") ~ "Director",
-                                      tolower(rank_selfenter) %in% c("clinical assistant prof", "clinical associate professor") ~ "Clinical Professor",
-                                      tolower(rank_selfenter) == "industry assistant professor" ~ "Industry Assistant Professor",
-                                      grepl("student", tolower(rank_selfenter)) ~ "Student",
+                                      tolower(rank_selfenter) %in% c("center director", "executive director of a center") ~ "Director",
                                       TRUE ~ rank_selfenter),
          
          rank = ifelse(rank=="other", rank_selfenter_g, rank)) %>%
@@ -392,7 +408,10 @@ ranks <- other %>%
   ungroup() %>%
   
   # Arrange by the number of participants
-  arrange(-n)
+  arrange(-n) %>%
+  
+  # Capitalize all the ranks
+  mutate(rank = capital(rank))
   
 
 # Table and Barplot
@@ -407,6 +426,14 @@ ggplot(ranks, aes(x = reorder(rank, -n), y = n)) +
 ```
 
 
+```{r other rank, echo=FALSE, results='hide'}
+other_ranks <- other$rank_selfenter[other$rank_selfenter!=""]
+
+if (length(other_ranks) > 0) {
+  freq_table(other_ranks, "Other Rank", transform = T, ordered = T)
+}
+```
+
 
 # Statistical Methodology 
 
@@ -417,20 +444,18 @@ ggplot(ranks, aes(x = reorder(rank, -n), y = n)) +
 ```{r, echo=FALSE}
 # Gruop the "Other" categories 
 # and replace the "Other" in the stat_need variable with the grouped other categories
+
 stat <- stat %>%
-  mutate(stat_need_selfenter_g = case_when(stat_need_selfenter %in% c("Does not relate", "N/A", "None", "none of the above") ~ "",
-                                           stat_need_selfenter %in% c("Big data infrastructure", "Help with support for our big data cluster, Dumbo. It needs upgrading, it is missing a big data visualization tool, such as Tableau.") ~ "Big Data",
-                                           stat_need_selfenter %in% c("large scale simulations", "Simulation") ~ "Simulation",
-                                           stat_need_selfenter %in% c("Optimizing code to be run on distributed high performance computing systems", "Use of HPC") ~ "HPC",
-                                           stat_need_selfenter %in% c("All used in work", "Everything--statistical epidemiology") ~ "Everything",
-                                           stat_need_selfenter == "Determining the best statistical method to analyse a particular data set" ~ "Model Selection and Specification",
-                                           stat_need_selfenter == "survey design, crowd sourced experiments" ~ "Research Design",
-                                           grepl("specific software", stat_need_selfenter) ~ "Coding/Software Help",
-                                           grepl("Developing packages for CRAN", stat_need_selfenter) ~ "",
-                                           
+  
+  ## The following code line is just an example of grouping / renaming other statistical methodologies, 
+  ## and it should be adjusted according to the actual data.
+  ## The next chunk {r other stat} provides to codes to see all the self-entered other stat methods
+  ## which can be used for the grouping
+  mutate(stat_need_selfenter_g = case_when(stat_need_selfenter %in% c("None", "none of the above") ~ "",
+                                           stat_need_selfenter %in% c("large scale simulations") ~ "Simulation", 
                                            TRUE ~ stat_need_selfenter)) %>%
          
-         mutate(stat_need = ifelse(stat_need=="Other", stat_need_selfenter_g, stat_need)) 
+         mutate(stat_need = ifelse(stat_need %in% c("Other", ""), stat_need_selfenter_g, stat_need)) 
 
 
 stat_needs <- stat %>%
@@ -461,6 +486,19 @@ ggplot(stat_needs, aes(x = reorder(stat_need, -n), y = n)) +
   ggtitle("Statistical Methodology in Need") +
   xlab("Statistical Methodology") + ylab("N")
 ```
+
+
+```{r other stat, echo=FALSE, results='hide'}
+other_stat <- stat %>%
+  filter(stat_need_selfenter != "") %>%
+  distinct(id, stat_need_selfenter) %>%
+  select(stat_need_selfenter)
+
+if (length(other_stat) > 0) {
+  freq_table(other_stat, "Other Stat Method", transform = T, ordered = T)
+}
+```
+
 
 ## Subquestions for each of the statistical methodology
 
@@ -584,10 +622,18 @@ stat_accesses <- other %>%
   # Unnest the accesses
   unnest_tokens(output = stat_access, input = stat_access, token = 'regex', pattern=",", to_lower = FALSE) %>%
   
-  # Group the "other" categories 
-  mutate(stat_access_other_specify_g = case_when(stat_access_other_specify %in% c("Do it myself", "do it on my own", "I'm a biostatistician", "I am a statistician", "I try to do them myself", "spend the effort myself") ~ "Do it myself",
-                                                 stat_access_other_specify %in% c("College of Nursing statisticians", "Consult within the school", "Internal Research Scientist", "or Consult with colleagues", "Reach out to the medical school's stats pool.", "See if anyone is available in my dept", "We have a core of biostatisticians at Meyers ", "hire a research associate", "Hired staff who is staffed on multiple projects providing this kind of support") ~ "Consult / hire within school",
-                                                 TRUE ~ stat_access_other_specify)) %>%
+  # Group the "other" categories
+  
+  ## The following code line is just an example of grouping / renaming other accesses, 
+  ## and it should be adjusted according to the actual data.
+  ## The next chunk {r other stat access} provides to codes to see all the self-entered other accesses
+  ## which can be used for the grouping
+  mutate(stat_access_other_specify_g = case_when(
+    stat_access_other_specify %in% c("Do it myself", "I'm a biostatistician") ~ "Do it myself",
+    stat_access_other_specify %in% c("Consult within the school") ~ "Consult / hire within school",
+    TRUE ~ stat_access_other_specify
+    )) %>%
+  
   # Replace the category of other
   mutate(stat_access = ifelse(stat_access=="Other (Please specify which:)", stat_access_other_specify_g, stat_access),
          stat_access = ifelse(stat_access=="Seek consultation from outside the university (Please specify which:)", "Seek consultation from outside the university", stat_access)) %>%
@@ -625,9 +671,20 @@ ggplot(stat_accesses, aes(x = reorder(stat_access, -n), y = n)) +
   xlab("Access") + ylab("N")
 ```
 
+
+```{r other stat access, echo=FALSE, results='hide'}
+other_access <- other$stat_access_other_specify[other$stat_access_other_specify!=""]
+
+if (length(other_access) > 0) {
+  freq_table(other_access, "Other Access", transform = T, ordered = T)
+}
+```
+
+
+
 The following table shows the consultation from outside the university specified by the participants.
 
-```{r, echo=F}
+```{r stat outside consultation, echo=F}
 outside_consult <- other$stat_access_consult_specify[other$stat_access_consult_specify!=""]
 
 if (length(outside_consult > 0)) {
@@ -689,23 +746,15 @@ ggplot(other[!is.na(other$stat_need_reason), ], aes(x = stat_need_reason)) +
 **Q Checkbox: Which of the following Software Engineering do you currently use in your work, need help with, or expect that you may need help with in the future?**
 
 ```{r, echo=FALSE}
-# Add the "Developing packages for CRAN" in the self-entered "Other" text 
-# of Statistical Methodology part to the Software Engineering part
-dev_pack <- stat %>%
-  filter(stat_need_selfenter == "Developing packages for CRAN",
-         stat_need == "") %>%
-  rename(soft_need = stat_need, soft_need_selfenter = stat_need_selfenter) %>%
-  select(-stat_need_selfenter_g)
-
-soft <- rbind(soft, dev_pack) 
-
 # Gruop the "Other" categories 
 # and replace the "Other" in the soft_need variable with the grouped other categories
 soft <- soft %>%
-  mutate(soft_need_selfenter_g = case_when(soft_need_selfenter %in% c("N/A", "none", "None") ~ "",
-                                           grepl("scraping", tolower(soft_need_selfenter)) ~ "Scraping",
-                                           soft_need_selfenter == "Developing packages for CRAN" ~ "Python or R package building",
-                                           soft_need_selfenter == "software engineering for numerical optimization" ~ "Numerical Optimization",
+  
+  ## The following code line is just an example of grouping / renaming other software engineering, 
+  ## and it should be adjusted according to the actual data.
+  ## The next chunk {r other soft} provides to codes to see all the self-entered other software engineering
+  ## which can be used for the grouping
+  mutate(soft_need_selfenter_g = case_when(soft_need_selfenter %in% c("none", "none of the above") ~ "",
                                            soft_need_selfenter == "Spark and Hadoop tools programming." ~ "Spark & Hadoop",
                                            TRUE ~ soft_need_selfenter)) %>%
   
@@ -739,8 +788,24 @@ ggplot(soft_needs, aes(x = reorder(soft_need, -n), y = n)) +
   theme(axis.text.x = element_text(angle = 60, hjust = 1),
         plot.title = element_text(hjust = 0.5)) +
   ggtitle("Software Engineering in Need") +
-  xlab("Software Engineering") + ylab("N")
+  xlab("Software Engineering") + ylab("N") +
+  ## The x axis labels might need more adjustments according to the actual data
+  scale_x_discrete(labels = c("Containerization And Cloud Computing" = "Containerization & Cloud Computing"))
 ```
+
+
+```{r other soft, echo=FALSE, results='hide'}
+other_soft <- soft %>%
+  filter(soft_need_selfenter != "") %>%
+  distinct(id, soft_need_selfenter) %>%
+  select(soft_need_selfenter)
+
+if (length(other_soft) > 0) {
+  freq_table(other_soft, "Other Software Engineering", transform = T, ordered = T)
+}
+```
+
+
 
 ## Subquestions for each of the software engineering checkbox
 
@@ -864,12 +929,19 @@ soft_accesses <- other %>%
   # Unnest the accesses
   unnest_tokens(output = soft_access, input = soft_access, token = 'regex', pattern=",", to_lower = FALSE) %>%
   
-  # Group the "other" categories 
-  mutate(soft_access_other_specify_g = case_when(grepl("myself", tolower(soft_access_other_specify)) | grepl("personally", tolower(soft_access_other_specify)) ~ "Do it myself",
-                                                 #soft_access_other_specify == "Personally and through students" ~ "Do it myself",
-                                                 soft_access_other_specify %in% c("Current research programmer, who will only be on staff for a year", "hire a software engineer", "Hire a staff member") ~ "Hire software staff",
-                                                 grepl("postdoc", tolower(soft_access_other_specify)) ~ "Postdocs",
-                                                 TRUE ~ soft_access_other_specify)) %>%
+  # Group the "other" categories
+  
+  ## The following code line is just an example of grouping / renaming other accesses, 
+  ## and it should be adjusted according to the actual data.
+  ## The next chunk {r other soft access} provides to codes to see all the self-entered other accesses
+  ## which can be used for the grouping
+  mutate(soft_access_other_specify_g =  case_when(
+    soft_access_other_specify %in% c("Do it myself") ~ "Do it myself",
+    soft_access_other_specify %in% c("hire a software engineer") ~ "Hire software staff",
+    soft_access_other_specify == "other1" ~ "Other",
+    TRUE ~ soft_access_other_specify
+    )) %>%
+  
   # Replace the category of other
   mutate(soft_access = ifelse(soft_access=="Other (Please specify which:)", soft_access_other_specify_g, soft_access),
          soft_access = ifelse(soft_access=="Seek consultation from outside the university (Please specify which:)", "Seek consultation from outside the university", soft_access)) %>%
@@ -878,11 +950,6 @@ soft_accesses <- other %>%
   group_by(soft_access) %>%
   summarise(n = n()) %>%
   ungroup() %>%
-  
-  # There is a respondent writing "Personally and through students".
-  # I grouped this into "Do it myself",
-  # so I added 1 more count into the "Hire a student" category
-  mutate(n = ifelse(soft_access == "Hire a student", n+1, n)) %>%
   
   # Arrange by the number of participants
   filter(soft_access != "") %>%
@@ -909,9 +976,20 @@ ggplot(soft_accesses, aes(x = reorder(soft_access, -n), y = n)) +
   xlab("Access") + ylab("N")
 ```
 
+
+```{r other soft access, echo=FALSE, results='hide'}
+other_access <- other$soft_access_other_specify[other$soft_access_other_specify!=""]
+
+if (length(other_access) > 0) {
+  freq_table(other_access, "Other Access", transform = T, ordered = T)
+}
+```
+
+
+
 The following table shows the consultation from outside the university specified by the participants.
 
-```{r, echo=F}
+```{r soft outside consultation, echo=F}
 outside_consult <- other$soft_access_consult_specify[other$soft_access_consult_specify!=""]
 
 if (length(outside_consult > 0)) {
