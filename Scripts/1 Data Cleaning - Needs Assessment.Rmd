@@ -90,7 +90,9 @@ stat <- needs %>%
   mutate(
     
 # Match the answers of subquestions (1)-(4) to the newly created variables below,
-# according to order of the checkbox
+# Note that the order of the checkbox for statistical methodology is not the same as the order of X1-X8
+# The following matching is based on the auto-generated report on Qualtrics,
+# by refering to the subquestions of each of the eight checkboxes to see which is the corresponding checkbox
     need_freq = case_when(
       stat_need == "Research Design" ~ X1_.1.,
       stat_need == "Preparation of Statistical Grant Materials" ~ X2_.1.,
