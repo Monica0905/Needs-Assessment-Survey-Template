@@ -29,7 +29,7 @@ sapply(packages, require, character.only = T)
 # here() is for reading or saving the data without specify the local directory
 here::here()
 
-needs_full <- read.csv("../Data/Needs Assessment_Deocy.csv")
+needs_full <- read.csv("../Data/Raw/Needs Assessment_Deocy.csv")
 ```
 
 # Preprocess variable names

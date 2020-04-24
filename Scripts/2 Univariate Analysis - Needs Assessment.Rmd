@@ -26,14 +26,14 @@ here::here()
 
 ## Statisitcal methodology checkbox and subquestions
 #stat <- read_csv("../Data/Statistical Methodology Needs.csv")
-load("../Data/Statistical Methodology Needs.RDATA")
+load("../Data/Processed/Statistical Methodology Needs.RDATA")
 
 ## Software engineering checkbox and subquestions
 #soft <- read_csv("../Data/Software Engineering Needs.csv")
-load("../Data/Software Engineering Needs.RDATA")
+load("../Data/Processed/Software Engineering Needs.RDATA")
 
 ## Other questions
-load("../Data/Other Questions.RDATA")
+load("../Data/Processed/Other Questions.RDATA")
 ```
 
 
@@ -628,9 +628,13 @@ ggplot(stat_accesses, aes(x = reorder(stat_access, -n), y = n)) +
 The following table shows the consultation from outside the university specified by the participants.
 
 ```{r, echo=F}
-freq_table(other$stat_access_consult_specify[other$stat_access_consult_specify!=""], "Consultation", transform = T,
-           caption = "Statistical Consultation from Outide the University",
-           width_col1 = "15cm")
+outside_consult <- other$stat_access_consult_specify[other$stat_access_consult_specify!=""]
+
+if (length(outside_consult > 0)) {
+  freq_table(outside_consult, "Consultation", transform = T,
+             caption = "Statistical Consultation from Outide the University", 
+             width_col1 = "15cm")
+}
 ```
 
 
