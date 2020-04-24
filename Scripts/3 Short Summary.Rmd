@@ -444,22 +444,4 @@ When asked about how they currently access software engineering help, `r soft_ac
 
 # Testimonials
 
-``Having a pool of people who could help with statistics and software would greatly improve my ability to pursue more competitive grants than the ones I am currently able to do without having any support. There are simply technical skills that I don't have that would be helpful both pre-and post- award.''
-
-``We do not have the staff expertise or budget to take advantage of the research opportunities in our area or work (focused on defending/promoting academic freedom globally). Expertise/support in these areas would advance our work and its impact substantially''
-
-``It would make me more productive as I usually wind up doing these things on my own which takes a lot of time and sometimes I don't completely know what I am doing and need to take time to learn as I go''
-
-``Not having access to statistical services is a hindrance in advancing my research work. If access to statistical services were readily available it would enhance the rigor of grant application and enable purchasing these services for the grant-related activities once the grant was funded.''
-
-``Having access to software engineering services, in particular for numerical optimization, would significantly help my research productivity.''
-
-``It would be helpful to have assistance with statistical analysis during study design and preparation of manuscripts for publication. Having access to personnel who can create/run Python and R packages will be helpful in study design - we can now propose do to experiments/large-scale sequencing studies that require this expertise and would not have been able to do so before''
-
-``Such a service would help me to make my algorithms more widely available. I do not have the time/interest to turn them into usable packages right now, I just write papers and have code formed by my students. Hiring someone to tidy up the code and make it accessible on a wide range of platforms would be very useful, but I can’t do this on my grants.''
-
-``The famous quote by Maslow "I suppose it is tempting, if the only tool you have is a hammer, to treat everything as if it were a nail" describes my experience with statistical and data-related tools. My research and approach is limited not by what can be done, but what I am aware of and feel capable of using. Additional supports for data and statistical services would allow me to ask questions I can't yet imagine and find answers I couldn’t predict''
-
-``The NSF has embraced the importance of data science as one of it's 10 big ideas and also has an office of cyber infrastructure. Software is a big part of those projects, but it they are usually focused on a science objective so the budget needs to include a graduate student and/or postdoc. The budgets are usually not large enough to hire a full-time software engineer, but they do allow for ~1/4 to 1/2 FTE. The problem is it is nearly impossible to hire someone with this arrangement... A university service where I could contract out skilled software engineers would be address my unmet need''
-
-``This is a great idea, an entity at NYU that provides fee-for-service statistical, modeling, website development would be fantastic.''
+``This is a decoy comment.''
