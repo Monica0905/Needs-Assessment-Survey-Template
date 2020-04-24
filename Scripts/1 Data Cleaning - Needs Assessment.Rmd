@@ -159,8 +159,8 @@ stat <- needs %>%
   select(id, stat_need, stat_need_selfenter, need_freq:find_difficulty)
 
 
-write.csv(stat, file = "../Data/Statistical Methodology Needs.csv", row.names = F)
-save(stat, file = "../Data/Statistical Methodology Needs.RDATA")
+write.csv(stat, file = "../Data/Processed/Statistical Methodology Needs.csv", row.names = F)
+save(stat, file = "../Data/Processed/Statistical Methodology Needs.RDATA")
 ```
 
 
@@ -239,8 +239,8 @@ soft <- needs %>%
 
   select(id, soft_need, soft_need_selfenter, need_freq:find_difficulty)
 
-write.csv(soft, file = "../Data/Software Engineering Needs.csv", row.names = F)
-save(soft, file = "../Data/Software Engineering Needs.RDATA")
+write.csv(soft, file = "../Data/Processed/Software Engineering Needs.csv", row.names = F)
+save(soft, file = "../Data/Processed/Software Engineering Needs.RDATA")
 ```
 
 
@@ -328,6 +328,6 @@ other <- needs %>%
   
 
 
-write.csv(other, file = "../Data/Other Questions.csv", row.names = F)
-save(other, file = "../Data/Other Questions.RDATA")
+write.csv(other, file = "../Data/Processed/Other Questions.csv", row.names = F)
+save(other, file = "../Data/Processed/Other Questions.RDATA")
 ```

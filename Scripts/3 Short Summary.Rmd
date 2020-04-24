@@ -26,14 +26,14 @@ here::here()
 
 ## Statisitcal methodology checkbox and subquestions
 #stat <- read_csv("../Data/Statistical Methodology Needs.csv")
-load("../Data/Statistical Methodology Needs.RDATA")
+load("../Data/Processed/Statistical Methodology Needs.RDATA")
 
 ## Software engineering checkbox and subquestions
 #soft <- read_csv("../Data/Software Engineering Needs.csv")
-load("../Data/Software Engineering Needs.RDATA")
+load("../Data/Processed/Software Engineering Needs.RDATA")
 
 ## Other questions
-load("../Data/Other Questions.RDATA")
+load("../Data/Processed/Other Questions.RDATA")
 ```
 
 
