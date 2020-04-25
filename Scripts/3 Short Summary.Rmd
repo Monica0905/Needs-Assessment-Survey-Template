@@ -140,19 +140,12 @@ In the Spring of 2020, the Data Sciences and Software Services (DS3) group at NY
 # Group the "Other" categories 
 # and replace the "Other" in the stat_need variable with the grouped other categories
 stat <- stat %>%
-  mutate(stat_need_selfenter_g = case_when(stat_need_selfenter %in% c("Does not relate", "N/A", "None", "none of the above") ~ "",
-                                           stat_need_selfenter %in% c("Big data infrastructure", "Help with support for our big data cluster, Dumbo. It needs upgrading, it is missing a big data visualization tool, such as Tableau.") ~ "Big Data",
-                                           stat_need_selfenter %in% c("large scale simulations", "Simulation") ~ "Simulation",
-                                           stat_need_selfenter %in% c("Optimizing code to be run on distributed high performance computing systems", "Use of HPC") ~ "HPC",
-                                           stat_need_selfenter %in% c("All used in work", "Everything--statistical epidemiology") ~ "Everything",
-                                           stat_need_selfenter == "Determining the best statistical method to analyse a particular data set" ~ "Model Selection and Specification",
-                                           stat_need_selfenter == "survey design, crowd sourced experiments" ~ "Research Design",
-                                           grepl("specific software", stat_need_selfenter) ~ "Coding/Software Help",
-                                           grepl("Developing packages for CRAN", stat_need_selfenter) ~ "",
-                                           
+  mutate(stat_need_selfenter_g = case_when(stat_need_selfenter %in% c("None", "none of the above") ~ "",
+                                           stat_need_selfenter %in% c("large scale simulations") ~ "Simulation", 
+                                           stat_need_selfenter %in% c("otherstat") ~ "Other", 
                                            TRUE ~ stat_need_selfenter)) %>%
          
-         mutate(stat_need = ifelse(stat_need=="Other", stat_need_selfenter_g, stat_need)) 
+         mutate(stat_need = ifelse(stat_need %in% c("Other", ""), stat_need_selfenter_g, stat_need))  
 
 
 stat_needs <- stat %>%
@@ -193,10 +186,6 @@ stat_FTE_needs <- other %>%
   ## weighted sum
   mutate(ws = sum(as.numeric(as.character(stat_FTE_need)) * N))
 
-#freq_table(stat_FTE_needs[, 1:2], "FTE", caption = "FTE Needed for Statistical Methodology") %>%
-#  footnote(general = paste(stat_FTE_needs$ws[1], " FTE needed"),
-#  general_title = "Total: ", 
-#  footnote_as_chunk = T, title_format = c("italic", "underline"))
 
 # FTE supported
 stat_FTE_supports <- other %>%
@@ -254,9 +243,12 @@ stat_accesses <- other %>%
   unnest_tokens(output = stat_access, input = stat_access, token = 'regex', pattern=",", to_lower = FALSE) %>%
   
   # Group the "other" categories 
-  mutate(stat_access_other_specify_g = case_when(stat_access_other_specify %in% c("Do it myself", "do it on my own", "I'm a biostatistician", "I am a statistician", "I try to do them myself", "spend the effort myself") ~ "Do it myself",
-                                                 stat_access_other_specify %in% c("College of Nursing statisticians", "Consult within the school", "Internal Research Scientist", "or Consult with colleagues", "Reach out to the medical school's stats pool.", "See if anyone is available in my dept", "We have a core of biostatisticians at Meyers ", "hire a research associate", "Hired staff who is staffed on multiple projects providing this kind of support") ~ "Consult / hire within school",
-                                                 TRUE ~ stat_access_other_specify)) %>%
+  mutate(stat_access_other_specify_g = case_when(
+    stat_access_other_specify %in% c("Do it myself", "I'm a biostatistician") ~ "Do it myself",
+    stat_access_other_specify %in% c("Consult within the school") ~ "Consult / hire within school",
+    TRUE ~ stat_access_other_specify
+    )) %>%
+  
   # Replace the category of other
   mutate(stat_access = ifelse(stat_access=="Other (Please specify which:)", stat_access_other_specify_g, stat_access),
          stat_access = ifelse(stat_access=="Seek consultation from outside the university (Please specify which:)", "Seek consultation from outside the university", stat_access)) %>%
@@ -274,7 +266,7 @@ stat_accesses <- other %>%
   mutate(stat_access = capital(stat_access, word1_only = T))
 ```
 
-When asked about how they currently access statistical methodology help, `r stat_accesses$n[stat_accesses$stat_access == "Seek consultation from outside the university"]` respondents indicated that they currently seek consultation from outside the university. The places from where these consultations were solicited included NYU's competitors (e.g., Harvard, Illinois, Columbia) as well as online and consulting companies. Furthermore, `r table(other$stat_need_reason)[2]` respondents indicated that the reason they needed help with statistical methodology was to implement innovative methods that could help push forward their research in ways they currently were unable to do themselves.
+When asked about how they currently access statistical methodology help, `r stat_accesses$n[stat_accesses$stat_access == "Seek consultation from outside the university"]` respondents indicated that they currently seek consultation from outside the university. Furthermore, `r table(other$stat_need_reason)[2]` respondents indicated that the reason they needed help with statistical methodology was to implement innovative methods that could help push forward their research in ways they currently were unable to do themselves.
 
 # Software Engineering Results
 
@@ -291,24 +283,11 @@ soft_FTE_needs <- other %>%
 
 
 ```{r, echo=FALSE}
-# Add the "Developing packages for CRAN" in the self-entered "Other" text 
-# of Statistical Methodology part to the Software Engineering part
-dev_pack <- stat %>%
-  filter(stat_need_selfenter == "Developing packages for CRAN",
-         stat_need == "") %>%
-  rename(soft_need = stat_need, soft_need_selfenter = stat_need_selfenter) %>%
-  select(-stat_need_selfenter_g)
-
-soft <- rbind(soft, dev_pack) 
-
 # Group the "Other" categories 
 # and replace the "Other" in the soft_need variable with the grouped other categories
 soft <- soft %>%
-  mutate(soft_need_selfenter_g = case_when(soft_need_selfenter %in% c("N/A", "none", "None") ~ "",
-                                           grepl("scraping", tolower(soft_need_selfenter)) ~ "Scraping",
-                                           soft_need_selfenter == "Developing packages for CRAN" ~ "Python or R package building",
-                                           soft_need_selfenter == "software engineering for numerical optimization" ~ "Numerical Optimization",
-                                           soft_need_selfenter == "Spark and Hadoop tools programming." ~ "Spark & Hadoop",
+  mutate(soft_need_selfenter_g = case_when(soft_need_selfenter %in% c("none", "none of the above") ~ "",
+                                           soft_need_selfenter == "Spark and Hadoop tools programming" ~ "Spark & Hadoop",
                                            TRUE ~ soft_need_selfenter)) %>%
   
   mutate(soft_need = ifelse(soft_need %in% c("Other", ""), soft_need_selfenter_g, soft_need))
@@ -338,7 +317,7 @@ n_softneed = dim(soft_needs)[[1]]
 A similar investigation of needs pertaining to Software Engineering was conducted. Respondents indicated that they needed assistance with `r n_softneed` areas of software engineering. The following table displays these areas along with the number of respondents who indicated this need.
 
 ```{r, echo = F}
-# Table and barplot
+# Frequency table
 
 freq_table(soft_needs[, c("soft_need", "n")], "Software Engineering", caption = "Software Engineering in Need")
 ```
@@ -400,7 +379,7 @@ Similarly, the next table shows that `r sum(table(other$soft_univers_pool)[3:4])
 ```{r, echo=F}
 freq_table(other$soft_univers_pool, "Opinion", 
            transform = T, width_col1 = "15cm",
-           caption = "Opinion about contracting software engineering services from a university pool")
+           caption = "Contracting software engineering services from a university pool")
 
 ```
 
@@ -419,18 +398,17 @@ soft_accesses <- other %>%
                                                  grepl("postdoc", tolower(soft_access_other_specify)) ~ "Postdocs",
                                                  TRUE ~ soft_access_other_specify)) %>%
   # Replace the category of other
-  mutate(soft_access = ifelse(soft_access=="Other (Please specify which:)", soft_access_other_specify_g, soft_access),
-         soft_access = ifelse(soft_access=="Seek consultation from outside the university (Please specify which:)", "Seek consultation from outside the university", soft_access)) %>%
+  mutate(soft_access_other_specify_g =  case_when(
+    soft_access_other_specify %in% c("Do it myself") ~ "Do it myself",
+    soft_access_other_specify %in% c("hire a software engineer") ~ "Hire software staff",
+    soft_access_other_specify == "other1" ~ "Other",
+    TRUE ~ soft_access_other_specify
+    )) %>%
   
   # Compute the number of participants of each access
   group_by(soft_access) %>%
   summarise(n = n()) %>%
   ungroup() %>%
-  
-  # There is a respondent writing "Personally and through students".
-  # I grouped this into "Do it myself",
-  # so I added 1 more count into the "Hire a student" category
-  mutate(n = ifelse(soft_access == "Hire a student", n+1, n)) %>%
   
   # Arrange by the number of participants
   filter(soft_access != "") %>%
