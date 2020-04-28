@@ -99,7 +99,7 @@ n_participant <- nrow(other)
 ```
 
 
-The tables and barplots in this report are generated from the survey data of `r n_participant` participants.
+This report is generated based on a **synthetic** dataset representing responses to a survey to assess the current needs and use of statisticians and software engineers across the university. This dataset contains `r n_participant` responses.
 
 # FTE
 
