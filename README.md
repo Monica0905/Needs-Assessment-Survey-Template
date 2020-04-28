@@ -6,5 +6,5 @@ This repository contains:
 
  * A survey for a needs assessment survey for Statistical Methodology and Software Services in the [Qualtrics QSF format](https://www.qualtrics.com). 
  * [synthetic data](Data/Raw/) for the Needs Assessment Survey of Univerisity researchers' needs on statistical methodology and software engineering services, 
- * and the sample code in [R Markdown](https://rmarkdown.rstudio.com) to generate the [sample report](Scripts/3-Short-Summary-DECOY.pdf) based on the synthetic data.
+ * and the [sample code](Scripts/) in [R Markdown](https://rmarkdown.rstudio.com) to generate the [sample report](Scripts/3-Short-Summary-DECOY.pdf) based on the synthetic data.
 
