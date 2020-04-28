@@ -29,7 +29,7 @@ sapply(packages, require, character.only = T)
 # here() is for reading or saving the data without specify the local directory
 here::here()
 
-needs_full <- read.csv("../Data/Raw/Needs Assessment_Deocy.csv")
+needs_full <- read.csv("../Data/Raw/Needs_Assessment_Decoy.csv")
 ```
 
 # Preprocess variable names
@@ -157,8 +157,8 @@ stat <- needs %>%
   select(id, stat_need, stat_need_selfenter, need_freq:find_difficulty)
 
 
-write.csv(stat, file = "../Data/Processed/Statistical Methodology Needs.csv", row.names = F)
-save(stat, file = "../Data/Processed/Statistical Methodology Needs.RDATA")
+write.csv(stat, file = "../Data/Processed/Statistical_Methodology_Needs.csv", row.names = F)
+save(stat, file = "../Data/Processed/Statistical_Methodology_Needs.RDATA")
 ```
 
 
@@ -233,8 +233,8 @@ soft <- needs %>%
 
   select(id, soft_need, soft_need_selfenter, need_freq:find_difficulty)
 
-write.csv(soft, file = "../Data/Processed/Software Engineering Needs.csv", row.names = F)
-save(soft, file = "../Data/Processed/Software Engineering Needs.RDATA")
+write.csv(soft, file = "../Data/Processed/Software_Engineering_Needs.csv", row.names = F)
+save(soft, file = "../Data/Processed/Software_Engineering_Needs.RDATA")
 ```
 
 
@@ -323,6 +323,6 @@ other <- needs %>%
   
 
 
-write.csv(other, file = "../Data/Processed/Other Questions.csv", row.names = F)
-save(other, file = "../Data/Processed/Other Questions.RDATA")
+write.csv(other, file = "../Data/Processed/Other_Questions.csv", row.names = F)
+save(other, file = "../Data/Processed/Other_Questions.RDATA")
 ```
