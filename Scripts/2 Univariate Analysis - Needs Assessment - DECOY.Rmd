@@ -1,5 +1,5 @@
 ---
-title: "Needs Assessment Analysis"
+title: "Example report on synthetic data"
 output: pdf_document
 ---
 
