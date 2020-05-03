@@ -345,25 +345,27 @@ p
 
 
 ```{r, echo=FALSE, results='asis'}
+# Here we set the minimum number of respondents to be 5 for each statistical methodology, if we want to show the table and plot for that statistical methodology
+# This number can be adjusted according to the actual number of respondents in the real survey
+min_resp <- 5
+
+
 m <- unique(stat_needs$stat_need)
 
 for (i in 1:length(m)) {
   
   stat_method <- stat[tolower(stat$stat_need) == tolower(m[i]), ]
   
-  #if(i == 1) {cat("\n\n\\pagebreak\n")}
+  # If there are more than 5 respondents for the statistical methodology,
+  # then show the tables and plots of the subquestions
   
-  if (stat_needs$n[i] >= 5) {
+  if (stat_needs$n[i] >= min_resp) {
     
   print(kable(paste0(m[i], ":"), "latex", col.names = NULL, booktabs = T) %>% row_spec(1, bold = T) %>% kable_styling(position = "center"))
   
   four_tables(stat_method$need_freq, stat_method$help_extent, stat_method$support_difficulty, stat_method$find_difficulty)
 
-  
-  # If there are more than 5 respondents for the statistical methodology,
-  # then also plot the bar plots
-  
-    
+
     p1 <- ggplot(stat_method, aes(x = need_freq)) +
       geom_bar() + ggtitle("Frequency of Need") +
       theme(axis.text.x = element_text(size = 7), axis.title.x=element_blank(), axis.title.y = element_blank()) +
@@ -658,24 +660,26 @@ p
 \pagebreak
 
 ```{r, echo = F, results='asis'}
+# Here we set the minimum number of respondents to be 5 for each software engineering task, if we want to show the tables and plots for that software engineering task
+# This number can be adjusted according to the actual number of respondents in the real survey
+min_resp <- 5
+
+
 m <- unique(soft_needs$soft_need)
 
 for (i in 1:length(m)) {
   
   soft_method <- soft[tolower(soft$soft_need) == tolower(m[i]), ]
   
-  #if(i == 1) {cat("\n\n\\pagebreak\n")}
+  # If there are more than 5 respondents for the software engineering,
+  # then show the tables and plots of the subquestions
   
-  if (soft_needs$n[i] >= 5) {
+  if (soft_needs$n[i] >= min_resp) {
     
     print(kable(paste0(m[i], ":"), "latex", col.names = NULL, booktabs = T) %>% row_spec(1, bold = T) %>% kable_styling(position = "center"))
     
     four_tables(soft_method$need_freq, soft_method$help_extent, soft_method$support_difficulty, soft_method$find_difficulty)
-    
-    
-    # If there are more than 5 respondents for the software engineering,
-    # then also plot the bar plots
-    
+
     
     p1 <- ggplot(soft_method, aes(x = need_freq)) +
       geom_bar() + ggtitle("Frequency of Need") +
